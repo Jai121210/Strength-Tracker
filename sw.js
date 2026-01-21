@@ -1,5 +1,5 @@
-const CACHE_NAME = "pulse-workout-cache-v1";
-const OFFLINE_URLS = [
+const CACHE_NAME = "pulse-cache-v3"; // bump this when you update
+const ASSETS = [
   "./",
   "index.html",
   "styles.css",
@@ -7,13 +7,15 @@ const OFFLINE_URLS = [
   "manifest.webmanifest"
 ];
 
+// Install
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_URLS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
   self.skipWaiting();
 });
 
+// Activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -27,20 +29,35 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Fetch
 self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  if (request.method !== "GET") return;
+  const req = event.request;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
+  // Always network-first for navigation (index.html)
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          return res;
         })
-        .catch(() => caches.match("index.html"));
+        .catch(() => caches.match("index.html"))
+    );
+    return;
+  }
+
+  // Cache-first for everything else
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      return (
+        cached ||
+        fetch(req).then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          return res;
+        })
+      );
     })
   );
 });
