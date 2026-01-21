@@ -1,6 +1,5 @@
 // ---------- FIREBASE SETUP ----------
 
-// TODO: replace with your Firebase config from the console
 const firebaseConfig = {
   apiKey: "AIzaSyA8D4HWK7vh_pghrYpv8MKTSe6N4aA50MU",
   authDomain: "strength-tracker-cacd4.firebaseapp.com",
@@ -14,6 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 // ---------- GLOBAL STATE ----------
 
@@ -35,7 +35,11 @@ const DATA_DOC_ID = "appData"; // single doc per user
 
 function getUserDocRef() {
   if (!currentUser) return null;
-  return db.collection("users").doc(currentUser.uid).collection("data").doc(DATA_DOC_ID);
+  return db
+    .collection("users")
+    .doc(currentUser.uid)
+    .collection("data")
+    .doc(DATA_DOC_ID);
 }
 
 // ---------- LOGIN UI ----------
@@ -59,6 +63,7 @@ loginBtn.addEventListener("click", async () => {
   try {
     await auth.signInWithEmailAndPassword(email, pass);
   } catch (err) {
+    console.error(err);
     loginError.textContent = "Incorrect email or password.";
     loginError.style.display = "block";
   }
@@ -91,7 +96,6 @@ async function loadAppStateFromCloud() {
   try {
     const snap = await ref.get();
     if (!snap.exists) {
-      // first time: keep defaults
       await ref.set(appState);
       return;
     }
@@ -340,7 +344,7 @@ function renderCalendar() {
   }
 }
 
-// ---------- PROGRESS ----------
+// ---------- PROGRESS + PHOTO UPLOAD ----------
 
 const progressForm = document.getElementById("progress-form");
 const progressList = document.getElementById("progress-list");
@@ -378,6 +382,7 @@ function renderProgress() {
     li.appendChild(title);
     li.appendChild(meta);
     if (entry.notes) li.appendChild(notes);
+
     if (entry.pr) {
       const pr = document.createElement("div");
       pr.style.fontSize = "0.8rem";
@@ -386,20 +391,53 @@ function renderProgress() {
       pr.textContent = `PR: ${entry.pr}`;
       li.appendChild(pr);
     }
+
+    if (entry.photoURL) {
+      const img = document.createElement("img");
+      img.src = entry.photoURL;
+      img.style.width = "100%";
+      img.style.borderRadius = "0.6rem";
+      img.style.marginTop = "0.5rem";
+      img.style.objectFit = "cover";
+      li.appendChild(img);
+    }
+
     progressList.appendChild(li);
   });
 }
 
-progressForm.addEventListener("submit", (e) => {
+progressForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+
   const dateInput = document.getElementById("progressDate").value;
   const date = dateInput || todayKey();
+  const weight = Number(document.getElementById("progressWeight").value) || null;
+  const notes = document.getElementById("progressNotes").value.trim();
+  const pr = document.getElementById("progressPR").value.trim();
+  const photoFile = document.getElementById("progressPhoto").files[0];
+
+  let photoURL = null;
+
+  if (photoFile && currentUser) {
+    try {
+      const storageRef = storage
+        .ref()
+        .child(`users/${currentUser.uid}/progressPhotos/${date}-${photoFile.name}`);
+      await storageRef.put(photoFile);
+      photoURL = await storageRef.getDownloadURL();
+    } catch (err) {
+      console.error("Photo upload failed:", err);
+    }
+  }
+
   const entry = {
     date,
-    weight: Number(document.getElementById("progressWeight").value) || null,
-    notes: document.getElementById("progressNotes").value.trim(),
-    pr: document.getElementById("progressPR").value.trim()
+    weight,
+    notes,
+    pr,
+    photoURL
   };
+
   appState.progress.push(entry);
   progressForm.reset();
   renderProgress();

@@ -156,6 +156,13 @@ h3 {
   margin-bottom: 0.5rem;
 }
 
+.progress-photo {
+  width: 100%;
+  border-radius: 0.75rem;
+  margin-top: 0.5rem;
+  object-fit: cover;
+}
+
 .muted {
   color: var(--muted);
 }
