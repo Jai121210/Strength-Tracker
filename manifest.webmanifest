@@ -1,11 +1,11 @@
 {
-  "name": "Pulse - Offline Workout Tracker",
+  "name": "Pulse - Workout Tracker",
   "short_name": "Pulse",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#050509",
   "theme_color": "#050509",
-  "description": "Minimal offline workout, habit, and stats tracker.",
+  "description": "Workout, habits and stats synced via your account.",
   "icons": [
     {
       "src": "icons/icon-192.png",

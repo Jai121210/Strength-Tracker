@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Offline Workout Tracker</title>
+  <title>Pulse - Offline Workout Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="manifest" href="manifest.webmanifest" />
@@ -12,10 +12,39 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- LOGIN OVERLAY -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <h2>Login</h2>
+      <p class="muted small" style="margin-bottom:1rem;">
+        This app is locked to your account.
+      </p>
+
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" autocomplete="username" />
+      </div>
+
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" />
+      </div>
+
+      <button id="loginBtn" class="primary" style="width:100%; margin-top:0.75rem;">
+        Enter
+      </button>
+
+      <p id="loginError" class="muted small" style="margin-top:0.5rem; display:none;">
+        Incorrect email or password.
+      </p>
+    </div>
+  </div>
+
+  <!-- APP CONTENT -->
   <header class="app-header">
     <div class="app-title">
       <h1>Pulse</h1>
-      <span class="tagline">Offline workout & habit tracker</span>
+      <span class="tagline">Workout, habits & stats</span>
     </div>
     <div class="app-badge">PWA</div>
   </header>
@@ -351,12 +380,24 @@
         </p>
         <button id="enableNotifications" class="primary">Enable notifications</button>
       </div>
+
+      <div class="card">
+        <h3>Account</h3>
+        <button id="logoutBtn" class="primary" style="background: #ef4444; box-shadow:none;">
+          Log out
+        </button>
+      </div>
     </section>
   </main>
 
   <footer class="app-footer">
-    <span>All data stays on this device.</span>
+    <span>Data synced via your Firebase account.</span>
   </footer>
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <script src="app.js"></script>
 </body>

@@ -1,32 +1,142 @@
-// Storage keys
-const STORAGE_KEYS = {
-  PROFILE: "owt_profile",
-  WORKOUTS: "owt_workouts",
-  CHECKLIST: "owt_checklist",
-  PROGRESS: "owt_progress",
-  SETTINGS: "owt_settings",
+// ---------- FIREBASE SETUP ----------
+
+// TODO: replace with your Firebase config from the console
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
-// Helpers
-function save(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ---------- GLOBAL STATE ----------
+
+let currentUser = null;
+let appState = {
+  profile: null,
+  workouts: [],
+  checklist: {},
+  progress: [],
+  settings: {
+    theme: "dark",
+    fontSize: "normal",
+    weightUnit: "kg",
+    distanceUnit: "km"
+  }
+};
+
+const DATA_DOC_ID = "appData"; // single doc per user
+
+function getUserDocRef() {
+  if (!currentUser) return null;
+  return db.collection("users").doc(currentUser.uid).collection("data").doc(DATA_DOC_ID);
 }
 
-function load(key, fallback) {
-  const raw = localStorage.getItem(key);
-  if (!raw) return fallback;
+// ---------- LOGIN UI ----------
+
+const loginScreen = document.getElementById("login-screen");
+const loginEmail = document.getElementById("loginEmail");
+const loginPass = document.getElementById("loginPass");
+const loginBtn = document.getElementById("loginBtn");
+const loginError = document.getElementById("loginError");
+const logoutBtn = document.getElementById("logoutBtn");
+
+loginBtn.addEventListener("click", async () => {
+  loginError.style.display = "none";
+  const email = loginEmail.value.trim();
+  const pass = loginPass.value.trim();
+  if (!email || !pass) {
+    loginError.textContent = "Enter email and password.";
+    loginError.style.display = "block";
+    return;
+  }
   try {
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (err) {
+    loginError.textContent = "Incorrect email or password.";
+    loginError.style.display = "block";
+  }
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await auth.signOut();
+});
+
+// ---------- AUTH STATE ----------
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    currentUser = null;
+    loginScreen.style.display = "flex";
+    return;
+  }
+  currentUser = user;
+  loginScreen.style.display = "none";
+  await loadAppStateFromCloud();
+  initUI();
+});
+
+// ---------- CLOUD SYNC ----------
+
+async function loadAppStateFromCloud() {
+  const ref = getUserDocRef();
+  if (!ref) return;
+
+  try {
+    const snap = await ref.get();
+    if (!snap.exists) {
+      // first time: keep defaults
+      await ref.set(appState);
+      return;
+    }
+    const data = snap.data();
+    appState = {
+      profile: data.profile || null,
+      workouts: data.workouts || [],
+      checklist: data.checklist || {},
+      progress: data.progress || [],
+      settings: {
+        theme: data.settings?.theme || "dark",
+        fontSize: data.settings?.fontSize || "normal",
+        weightUnit: data.settings?.weightUnit || "kg",
+        distanceUnit: data.settings?.distanceUnit || "km"
+      }
+    };
+  } catch (e) {
+    console.error("Error loading data:", e);
   }
 }
+
+let saveTimeout = null;
+function scheduleSaveToCloud() {
+  if (!currentUser) return;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveToCloud, 500);
+}
+
+async function saveToCloud() {
+  const ref = getUserDocRef();
+  if (!ref) return;
+  try {
+    await ref.set(appState);
+  } catch (e) {
+    console.error("Error saving data:", e);
+  }
+}
+
+// ---------- UTILITIES ----------
 
 function todayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
-// Tabs
+// ---------- TABS ----------
+
 const tabButtons = document.querySelectorAll(".tab-button");
 const tabs = document.querySelectorAll(".tab");
 
@@ -40,17 +150,23 @@ tabButtons.forEach((btn) => {
   });
 });
 
-// PROFILE
+// ---------- PROFILE ----------
+
 const profileForm = document.getElementById("profile-form");
 const profileSummary = document.getElementById("profile-summary");
 
 function renderProfile() {
-  const profile = load(STORAGE_KEYS.PROFILE, null);
-  const settings = load(STORAGE_KEYS.SETTINGS, {});
+  const profile = appState.profile;
+  const settings = appState.settings;
   const weightUnit = settings.weightUnit || "kg";
 
   if (!profile) {
     profileSummary.textContent = "No profile saved yet.";
+    document.getElementById("age").value = "";
+    document.getElementById("weight").value = "";
+    document.getElementById("height").value = "";
+    document.getElementById("fitnessLevel").value = "beginner";
+    document.getElementById("goal").value = "muscle";
     return;
   }
 
@@ -69,31 +185,31 @@ function renderProfile() {
 
 profileForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const profile = {
+  appState.profile = {
     age: Number(document.getElementById("age").value) || null,
     weight: Number(document.getElementById("weight").value) || null,
     height: Number(document.getElementById("height").value) || null,
     fitnessLevel: document.getElementById("fitnessLevel").value,
-    goal: document.getElementById("goal").value,
+    goal: document.getElementById("goal").value
   };
-  save(STORAGE_KEYS.PROFILE, profile);
   renderProfile();
+  scheduleSaveToCloud();
 });
 
-// WORKOUTS
+// ---------- WORKOUTS ----------
+
 const workoutForm = document.getElementById("workout-form");
 const workoutList = document.getElementById("workout-list");
 const workoutCount = document.getElementById("workout-count");
 const sessionExerciseSelect = document.getElementById("sessionExercise");
 
 function renderWorkouts() {
-  const workouts = load(STORAGE_KEYS.WORKOUTS, []);
+  const workouts = appState.workouts;
   workoutList.innerHTML = "";
   workoutCount.textContent = `${workouts.length} total`;
 
-  // Populate dropdown for session
   sessionExerciseSelect.innerHTML = '<option value="">Select exercise</option>';
-  workouts.forEach((w, index) => {
+  workouts.forEach((w) => {
     const opt = document.createElement("option");
     opt.value = w.name;
     opt.textContent = w.name;
@@ -129,9 +245,9 @@ function renderWorkouts() {
     removeBtn.className = "chip chip-ghost";
     removeBtn.style.marginTop = "0.35rem";
     removeBtn.addEventListener("click", () => {
-      const updated = workouts.filter((_, i) => i !== index);
-      save(STORAGE_KEYS.WORKOUTS, updated);
+      appState.workouts = workouts.filter((_, i) => i !== index);
       renderWorkouts();
+      scheduleSaveToCloud();
     });
 
     li.appendChild(title);
@@ -144,28 +260,28 @@ function renderWorkouts() {
 
 workoutForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const workouts = load(STORAGE_KEYS.WORKOUTS, []);
   const workout = {
     name: document.getElementById("workoutName").value.trim(),
     description: document.getElementById("workoutDescription").value.trim(),
     difficulty: document.getElementById("workoutDifficulty").value,
     muscles: document.getElementById("workoutMuscles").value.trim(),
-    equipment: document.getElementById("workoutEquipment").value.trim(),
+    equipment: document.getElementById("workoutEquipment").value.trim()
   };
   if (!workout.name) return;
-  workouts.push(workout);
-  save(STORAGE_KEYS.WORKOUTS, workouts);
+  appState.workouts.push(workout);
   workoutForm.reset();
   renderWorkouts();
+  scheduleSaveToCloud();
 });
 
-// PLANNER / CHECKLIST
+// ---------- PLANNER / CHECKLIST ----------
+
 const todayDateEl = document.getElementById("today-date");
 const checklistForm = document.getElementById("today-checklist");
 const calendarEl = document.getElementById("calendar");
 
 function renderTodayChecklist() {
-  const checklist = load(STORAGE_KEYS.CHECKLIST, {});
+  const checklist = appState.checklist;
   const key = todayKey();
   const today = checklist[key] || {};
   document.getElementById("taskWorkout").checked = !!today.workout;
@@ -178,29 +294,28 @@ function renderTodayChecklist() {
   todayDateEl.textContent = d.toLocaleDateString(undefined, {
     weekday: "long",
     month: "short",
-    day: "numeric",
+    day: "numeric"
   });
 }
 
 checklistForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const checklist = load(STORAGE_KEYS.CHECKLIST, {});
   const key = todayKey();
-  checklist[key] = {
+  appState.checklist[key] = {
     workout: document.getElementById("taskWorkout").checked,
     stretch: document.getElementById("taskStretch").checked,
     hydration: document.getElementById("taskHydration").checked,
     meditation: document.getElementById("taskMeditation").checked,
-    sleep: document.getElementById("taskSleep").checked,
+    sleep: document.getElementById("taskSleep").checked
   };
-  save(STORAGE_KEYS.CHECKLIST, checklist);
   renderCalendar();
   renderStreak();
   renderHomeStats();
+  scheduleSaveToCloud();
 });
 
 function renderCalendar() {
-  const checklist = load(STORAGE_KEYS.CHECKLIST, {});
+  const checklist = appState.checklist;
   calendarEl.innerHTML = "";
   const today = new Date();
   for (let i = 13; i >= 0; i--) {
@@ -224,14 +339,15 @@ function renderCalendar() {
   }
 }
 
-// PROGRESS
+// ---------- PROGRESS ----------
+
 const progressForm = document.getElementById("progress-form");
 const progressList = document.getElementById("progress-list");
 const streakText = document.getElementById("streak-text");
 
 function renderProgress() {
-  const entries = load(STORAGE_KEYS.PROGRESS, []);
-  const settings = load(STORAGE_KEYS.SETTINGS, {});
+  const entries = appState.progress;
+  const settings = appState.settings;
   const weightUnit = settings.weightUnit || "kg";
 
   progressList.innerHTML = "";
@@ -275,25 +391,25 @@ function renderProgress() {
 
 progressForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const entries = load(STORAGE_KEYS.PROGRESS, []);
   const dateInput = document.getElementById("progressDate").value;
   const date = dateInput || todayKey();
   const entry = {
     date,
     weight: Number(document.getElementById("progressWeight").value) || null,
     notes: document.getElementById("progressNotes").value.trim(),
-    pr: document.getElementById("progressPR").value.trim(),
+    pr: document.getElementById("progressPR").value.trim()
   };
-  entries.push(entry);
-  save(STORAGE_KEYS.PROGRESS, entries);
+  appState.progress.push(entry);
   progressForm.reset();
   renderProgress();
   renderHomeStats();
+  scheduleSaveToCloud();
 });
 
-// STREAK
+// ---------- STREAK & HOME STATS ----------
+
 function computeStreak() {
-  const checklist = load(STORAGE_KEYS.CHECKLIST, {});
+  const checklist = appState.checklist;
   let streak = 0;
   const d = new Date();
   while (true) {
@@ -320,7 +436,6 @@ function renderStreak() {
   }
 }
 
-// HOME STATS
 const homeStreak = document.getElementById("home-streak");
 const homeStreakSub = document.getElementById("home-streak-sub");
 const homeWorkouts = document.getElementById("home-workouts");
@@ -332,7 +447,7 @@ function renderHomeStats() {
   homeStreak.textContent = streak;
   homeStreakSub.textContent = "days in a row";
 
-  const entries = load(STORAGE_KEYS.PROGRESS, []);
+  const entries = appState.progress;
   homeWorkouts.textContent = entries.length;
 
   if (!entries.length) {
@@ -346,14 +461,15 @@ function renderHomeStats() {
   homePRs.textContent = prs;
 }
 
-// ACTIVE SESSION: auto rep adder + timer
+// ---------- ACTIVE SESSION (REPS + TIMER) ----------
+
 let sessionState = {
   exercise: "",
   sets: 0,
   reps: 0,
   timerSeconds: 0,
   timerRunning: false,
-  timerId: null,
+  timerId: null
 };
 
 const sessionSetsEl = document.getElementById("sessionSets");
@@ -376,19 +492,12 @@ function renderSession() {
   sessionSetsEl.textContent = sessionState.sets;
   sessionRepsEl.textContent = sessionState.reps;
   sessionTimerEl.textContent = formatTime(sessionState.timerSeconds);
-
-  if (sessionState.timerRunning) {
-    btnTimerToggle.textContent = "Pause timer";
-    btnTimerToggle.classList.add("chip-accent");
-  } else {
-    btnTimerToggle.textContent = "Start timer";
-    btnTimerToggle.classList.add("chip-accent");
-  }
 }
 
 function startTimer() {
   if (sessionState.timerRunning) return;
   sessionState.timerRunning = true;
+  btnTimerToggle.textContent = "Pause timer";
   sessionState.timerId = setInterval(() => {
     sessionState.timerSeconds += 1;
     sessionTimerEl.textContent = formatTime(sessionState.timerSeconds);
@@ -397,6 +506,7 @@ function startTimer() {
 
 function pauseTimer() {
   sessionState.timerRunning = false;
+  btnTimerToggle.textContent = "Start timer";
   if (sessionState.timerId) {
     clearInterval(sessionState.timerId);
     sessionState.timerId = null;
@@ -414,7 +524,6 @@ btnRepPlus.addEventListener("click", (e) => {
   sessionState.reps += 1;
   const target = Number(sessionTargetReps.value) || 0;
   if (target && sessionState.reps >= target) {
-    // auto-advance set when reps hit target
     sessionState.sets += 1;
     sessionState.reps = 0;
   }
@@ -445,7 +554,6 @@ btnTimerReset.addEventListener("click", (e) => {
 });
 
 sessionExerciseSelect.addEventListener("change", () => {
-  // Reset session when exercise changes
   resetTimer();
   sessionState.sets = 0;
   sessionState.reps = 0;
@@ -453,7 +561,8 @@ sessionExerciseSelect.addEventListener("change", () => {
   renderSession();
 });
 
-// SETTINGS
+// ---------- SETTINGS ----------
+
 const themeSelect = document.getElementById("themeSelect");
 const fontSizeSelect = document.getElementById("fontSizeSelect");
 const weightUnitSelect = document.getElementById("weightUnitSelect");
@@ -461,12 +570,7 @@ const distanceUnitSelect = document.getElementById("distanceUnitSelect");
 const enableNotificationsBtn = document.getElementById("enableNotifications");
 
 function applySettings() {
-  const settings = load(STORAGE_KEYS.SETTINGS, {
-    theme: "dark",
-    fontSize: "normal",
-    weightUnit: "kg",
-    distanceUnit: "km",
-  });
+  const settings = appState.settings;
 
   themeSelect.value = settings.theme;
   fontSizeSelect.value = settings.fontSize;
@@ -491,17 +595,17 @@ function applySettings() {
 }
 
 function saveSettings() {
-  const settings = {
+  appState.settings = {
     theme: themeSelect.value,
     fontSize: fontSizeSelect.value,
     weightUnit: weightUnitSelect.value,
-    distanceUnit: distanceUnitSelect.value,
+    distanceUnit: distanceUnitSelect.value
   };
-  save(STORAGE_KEYS.SETTINGS, settings);
   applySettings();
   renderProfile();
   renderProgress();
   renderHomeStats();
+  scheduleSaveToCloud();
 }
 
 themeSelect.addEventListener("change", saveSettings);
@@ -517,12 +621,13 @@ enableNotificationsBtn.addEventListener("click", async () => {
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
     new Notification("Notifications enabled", {
-      body: "You’ll receive local reminders when this app is open.",
+      body: "You’ll receive local reminders when this app is open."
     });
   }
 });
 
-// PWA: service worker
+// ---------- PWA SERVICE WORKER ----------
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch((err) => {
@@ -531,13 +636,16 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-// Initial render
-renderProfile();
-renderWorkouts();
-renderTodayChecklist();
-renderCalendar();
-renderProgress();
-renderStreak();
-renderHomeStats();
-applySettings();
-renderSession();
+// ---------- INITIAL UI (after auth) ----------
+
+function initUI() {
+  applySettings();
+  renderProfile();
+  renderWorkouts();
+  renderTodayChecklist();
+  renderCalendar();
+  renderProgress();
+  renderStreak();
+  renderHomeStats();
+  renderSession();
+}
