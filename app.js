@@ -1,4 +1,4 @@
-// Simple localStorage helpers
+// Storage keys
 const STORAGE_KEYS = {
   PROFILE: "owt_profile",
   WORKOUTS: "owt_workouts",
@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   SETTINGS: "owt_settings",
 };
 
+// Helpers
 function save(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
@@ -19,6 +20,10 @@ function load(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function todayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
 }
 
 // Tabs
@@ -35,27 +40,31 @@ tabButtons.forEach((btn) => {
   });
 });
 
-// Profile
+// PROFILE
 const profileForm = document.getElementById("profile-form");
 const profileSummary = document.getElementById("profile-summary");
 
 function renderProfile() {
   const profile = load(STORAGE_KEYS.PROFILE, null);
+  const settings = load(STORAGE_KEYS.SETTINGS, {});
+  const weightUnit = settings.weightUnit || "kg";
+
   if (!profile) {
     profileSummary.textContent = "No profile saved yet.";
     return;
   }
+
   document.getElementById("age").value = profile.age || "";
   document.getElementById("weight").value = profile.weight || "";
   document.getElementById("height").value = profile.height || "";
   document.getElementById("fitnessLevel").value = profile.fitnessLevel || "beginner";
   document.getElementById("goal").value = profile.goal || "muscle";
 
-  profileSummary.textContent = `Age ${profile.age || "?"}, ${profile.weight || "?"} ${
-    load(STORAGE_KEYS.SETTINGS, {}).weightUnit || "kg"
-  }, ${profile.height || "?"} cm • Level: ${profile.fitnessLevel || "?"} • Goal: ${
-    profile.goal || "?"
-  }`;
+  profileSummary.textContent = `Age ${profile.age || "?"}, ${
+    profile.weight || "?"
+  } ${weightUnit}, ${profile.height || "?"} cm • Level: ${
+    profile.fitnessLevel || "?"
+  } • Goal: ${profile.goal || "?"}`;
 }
 
 profileForm.addEventListener("submit", (e) => {
@@ -71,19 +80,33 @@ profileForm.addEventListener("submit", (e) => {
   renderProfile();
 });
 
-// Workouts
+// WORKOUTS
 const workoutForm = document.getElementById("workout-form");
 const workoutList = document.getElementById("workout-list");
+const workoutCount = document.getElementById("workout-count");
+const sessionExerciseSelect = document.getElementById("sessionExercise");
 
 function renderWorkouts() {
   const workouts = load(STORAGE_KEYS.WORKOUTS, []);
   workoutList.innerHTML = "";
+  workoutCount.textContent = `${workouts.length} total`;
+
+  // Populate dropdown for session
+  sessionExerciseSelect.innerHTML = '<option value="">Select exercise</option>';
+  workouts.forEach((w, index) => {
+    const opt = document.createElement("option");
+    opt.value = w.name;
+    opt.textContent = w.name;
+    sessionExerciseSelect.appendChild(opt);
+  });
+
   if (!workouts.length) {
     const li = document.createElement("li");
     li.textContent = "No workouts saved yet.";
     workoutList.appendChild(li);
     return;
   }
+
   workouts.forEach((w, index) => {
     const li = document.createElement("li");
     const title = document.createElement("div");
@@ -103,14 +126,8 @@ function renderWorkouts() {
 
     const removeBtn = document.createElement("button");
     removeBtn.textContent = "Delete";
-    removeBtn.style.marginTop = "0.25rem";
-    removeBtn.style.fontSize = "0.7rem";
-    removeBtn.style.borderRadius = "999px";
-    removeBtn.style.border = "none";
-    removeBtn.style.padding = "0.25rem 0.6rem";
-    removeBtn.style.cursor = "pointer";
-    removeBtn.style.background = "rgba(239, 68, 68, 0.12)";
-    removeBtn.style.color = "#fecaca";
+    removeBtn.className = "chip chip-ghost";
+    removeBtn.style.marginTop = "0.35rem";
     removeBtn.addEventListener("click", () => {
       const updated = workouts.filter((_, i) => i !== index);
       save(STORAGE_KEYS.WORKOUTS, updated);
@@ -142,27 +159,23 @@ workoutForm.addEventListener("submit", (e) => {
   renderWorkouts();
 });
 
-// Planner / Checklist
+// PLANNER / CHECKLIST
 const todayDateEl = document.getElementById("today-date");
 const checklistForm = document.getElementById("today-checklist");
 const calendarEl = document.getElementById("calendar");
 
-function getTodayKey(date = new Date()) {
-  return date.toISOString().slice(0, 10);
-}
-
 function renderTodayChecklist() {
   const checklist = load(STORAGE_KEYS.CHECKLIST, {});
-  const todayKey = getTodayKey();
-  const today = checklist[todayKey] || {};
+  const key = todayKey();
+  const today = checklist[key] || {};
   document.getElementById("taskWorkout").checked = !!today.workout;
   document.getElementById("taskStretch").checked = !!today.stretch;
   document.getElementById("taskHydration").checked = !!today.hydration;
   document.getElementById("taskMeditation").checked = !!today.meditation;
   document.getElementById("taskSleep").checked = !!today.sleep;
 
-  const todayDate = new Date();
-  todayDateEl.textContent = todayDate.toLocaleDateString(undefined, {
+  const d = new Date();
+  todayDateEl.textContent = d.toLocaleDateString(undefined, {
     weekday: "long",
     month: "short",
     day: "numeric",
@@ -172,8 +185,8 @@ function renderTodayChecklist() {
 checklistForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const checklist = load(STORAGE_KEYS.CHECKLIST, {});
-  const todayKey = getTodayKey();
-  checklist[todayKey] = {
+  const key = todayKey();
+  checklist[key] = {
     workout: document.getElementById("taskWorkout").checked,
     stretch: document.getElementById("taskStretch").checked,
     hydration: document.getElementById("taskHydration").checked,
@@ -183,6 +196,7 @@ checklistForm.addEventListener("submit", (e) => {
   save(STORAGE_KEYS.CHECKLIST, checklist);
   renderCalendar();
   renderStreak();
+  renderHomeStats();
 });
 
 function renderCalendar() {
@@ -192,7 +206,7 @@ function renderCalendar() {
   for (let i = 13; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const key = getTodayKey(d);
+    const key = todayKey(d);
     const entry = checklist[key];
     const dayEl = document.createElement("div");
     dayEl.className = "calendar-day";
@@ -210,13 +224,16 @@ function renderCalendar() {
   }
 }
 
-// Progress
+// PROGRESS
 const progressForm = document.getElementById("progress-form");
 const progressList = document.getElementById("progress-list");
 const streakText = document.getElementById("streak-text");
 
 function renderProgress() {
   const entries = load(STORAGE_KEYS.PROGRESS, []);
+  const settings = load(STORAGE_KEYS.SETTINGS, {});
+  const weightUnit = settings.weightUnit || "kg";
+
   progressList.innerHTML = "";
   if (!entries.length) {
     const li = document.createElement("li");
@@ -224,6 +241,7 @@ function renderProgress() {
     progressList.appendChild(li);
     return;
   }
+
   const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1));
   sorted.slice(0, 20).forEach((entry) => {
     const li = document.createElement("li");
@@ -233,9 +251,7 @@ function renderProgress() {
 
     const meta = document.createElement("div");
     meta.className = "list-meta";
-    meta.textContent = `Weight: ${
-      entry.weight ? entry.weight : "n/a"
-    } ${load(STORAGE_KEYS.SETTINGS, {}).weightUnit || "kg"}`;
+    meta.textContent = `Weight: ${entry.weight ? entry.weight : "n/a"} ${weightUnit}`;
 
     const notes = document.createElement("div");
     notes.style.fontSize = "0.8rem";
@@ -249,7 +265,7 @@ function renderProgress() {
       const pr = document.createElement("div");
       pr.style.fontSize = "0.8rem";
       pr.style.marginTop = "0.15rem";
-      pr.style.color = "#facc15";
+      pr.style.color = "#fed7aa";
       pr.textContent = `PR: ${entry.pr}`;
       li.appendChild(pr);
     }
@@ -261,7 +277,7 @@ progressForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const entries = load(STORAGE_KEYS.PROGRESS, []);
   const dateInput = document.getElementById("progressDate").value;
-  const date = dateInput || getTodayKey();
+  const date = dateInput || todayKey();
   const entry = {
     date,
     weight: Number(document.getElementById("progressWeight").value) || null,
@@ -272,33 +288,172 @@ progressForm.addEventListener("submit", (e) => {
   save(STORAGE_KEYS.PROGRESS, entries);
   progressForm.reset();
   renderProgress();
-  renderStreak();
+  renderHomeStats();
 });
 
-function renderStreak() {
+// STREAK
+function computeStreak() {
   const checklist = load(STORAGE_KEYS.CHECKLIST, {});
   let streak = 0;
-  const today = new Date();
+  const d = new Date();
   while (true) {
-    const key = getTodayKey(today);
+    const key = todayKey(d);
     const entry = checklist[key];
     if (entry && entry.workout) {
       streak += 1;
-      today.setDate(today.getDate() - 1);
+      d.setDate(d.getDate() - 1);
     } else {
       break;
     }
   }
+  return streak;
+}
+
+function renderStreak() {
+  const streak = computeStreak();
   if (streak === 0) {
-    streakText.textContent = "No current streak. Start today!";
+    streakText.textContent = "No current streak. Start today.";
   } else if (streak === 1) {
-    streakText.textContent = "1 day streak—nice start!";
+    streakText.textContent = "1 day streak — nice start.";
   } else {
-    streakText.textContent = `${streak} day streak—keep it going.`;
+    streakText.textContent = `${streak} day streak — keep it going.`;
   }
 }
 
-// Settings
+// HOME STATS
+const homeStreak = document.getElementById("home-streak");
+const homeStreakSub = document.getElementById("home-streak-sub");
+const homeWorkouts = document.getElementById("home-workouts");
+const homeLastWorkout = document.getElementById("home-last-workout");
+const homePRs = document.getElementById("home-prs");
+
+function renderHomeStats() {
+  const streak = computeStreak();
+  homeStreak.textContent = streak;
+  homeStreakSub.textContent = "days in a row";
+
+  const entries = load(STORAGE_KEYS.PROGRESS, []);
+  homeWorkouts.textContent = entries.length;
+
+  if (!entries.length) {
+    homeLastWorkout.textContent = "–";
+  } else {
+    const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1));
+    homeLastWorkout.textContent = new Date(sorted[0].date).toLocaleDateString();
+  }
+
+  const prs = entries.filter((e) => e.pr && e.pr.trim().length > 0).length;
+  homePRs.textContent = prs;
+}
+
+// ACTIVE SESSION: auto rep adder + timer
+let sessionState = {
+  exercise: "",
+  sets: 0,
+  reps: 0,
+  timerSeconds: 0,
+  timerRunning: false,
+  timerId: null,
+};
+
+const sessionSetsEl = document.getElementById("sessionSets");
+const sessionRepsEl = document.getElementById("sessionReps");
+const sessionTimerEl = document.getElementById("sessionTimer");
+const btnRepPlus = document.getElementById("btnRepPlus");
+const btnSetPlus = document.getElementById("btnSetPlus");
+const btnTimerToggle = document.getElementById("btnTimerToggle");
+const btnTimerReset = document.getElementById("btnTimerReset");
+const sessionTargetSets = document.getElementById("sessionTargetSets");
+const sessionTargetReps = document.getElementById("sessionTargetReps");
+
+function formatTime(seconds) {
+  const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const s = String(seconds % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function renderSession() {
+  sessionSetsEl.textContent = sessionState.sets;
+  sessionRepsEl.textContent = sessionState.reps;
+  sessionTimerEl.textContent = formatTime(sessionState.timerSeconds);
+
+  if (sessionState.timerRunning) {
+    btnTimerToggle.textContent = "Pause timer";
+    btnTimerToggle.classList.add("chip-accent");
+  } else {
+    btnTimerToggle.textContent = "Start timer";
+    btnTimerToggle.classList.add("chip-accent");
+  }
+}
+
+function startTimer() {
+  if (sessionState.timerRunning) return;
+  sessionState.timerRunning = true;
+  sessionState.timerId = setInterval(() => {
+    sessionState.timerSeconds += 1;
+    sessionTimerEl.textContent = formatTime(sessionState.timerSeconds);
+  }, 1000);
+}
+
+function pauseTimer() {
+  sessionState.timerRunning = false;
+  if (sessionState.timerId) {
+    clearInterval(sessionState.timerId);
+    sessionState.timerId = null;
+  }
+}
+
+function resetTimer() {
+  pauseTimer();
+  sessionState.timerSeconds = 0;
+  renderSession();
+}
+
+btnRepPlus.addEventListener("click", (e) => {
+  e.preventDefault();
+  sessionState.reps += 1;
+  const target = Number(sessionTargetReps.value) || 0;
+  if (target && sessionState.reps >= target) {
+    // auto-advance set when reps hit target
+    sessionState.sets += 1;
+    sessionState.reps = 0;
+  }
+  renderSession();
+});
+
+btnSetPlus.addEventListener("click", (e) => {
+  e.preventDefault();
+  sessionState.sets += 1;
+  renderSession();
+});
+
+btnTimerToggle.addEventListener("click", (e) => {
+  e.preventDefault();
+  if (sessionState.timerRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+});
+
+btnTimerReset.addEventListener("click", (e) => {
+  e.preventDefault();
+  resetTimer();
+  sessionState.sets = 0;
+  sessionState.reps = 0;
+  renderSession();
+});
+
+sessionExerciseSelect.addEventListener("change", () => {
+  // Reset session when exercise changes
+  resetTimer();
+  sessionState.sets = 0;
+  sessionState.reps = 0;
+  sessionState.exercise = sessionExerciseSelect.value;
+  renderSession();
+});
+
+// SETTINGS
 const themeSelect = document.getElementById("themeSelect");
 const fontSizeSelect = document.getElementById("fontSizeSelect");
 const weightUnitSelect = document.getElementById("weightUnitSelect");
@@ -307,7 +462,7 @@ const enableNotificationsBtn = document.getElementById("enableNotifications");
 
 function applySettings() {
   const settings = load(STORAGE_KEYS.SETTINGS, {
-    theme: "system",
+    theme: "dark",
     fontSize: "normal",
     weightUnit: "kg",
     distanceUnit: "km",
@@ -346,6 +501,7 @@ function saveSettings() {
   applySettings();
   renderProfile();
   renderProgress();
+  renderHomeStats();
 }
 
 themeSelect.addEventListener("change", saveSettings);
@@ -366,7 +522,7 @@ enableNotificationsBtn.addEventListener("click", async () => {
   }
 });
 
-// PWA: register service worker
+// PWA: service worker
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch((err) => {
@@ -382,4 +538,6 @@ renderTodayChecklist();
 renderCalendar();
 renderProgress();
 renderStreak();
+renderHomeStats();
 applySettings();
+renderSession();
