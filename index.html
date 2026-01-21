@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Strength Tracker</title>
+        <link rel="manifest" href="manifest.json" />
+          <link rel="stylesheet" href="style.css" />
+          </head>
+          <body>
+            <main class="card">
+                <h1>Today</h1>
+                    <p id="status"></p>
+
+                        <section>
+                              <h2>Checklist</h2>
+                                    <label><input type="checkbox" data-key="workout"> Workout</label>
+                                          <label><input type="checkbox" data-key="breakfast"> Breakfast</label>
+                                                <label><input type="checkbox" data-key="snack"> Extra snack</label>
+                                                      <label><input type="checkbox" data-key="milk"> Milk</label>
+                                                            <label><input type="checkbox" data-key="sleep"> Sleep 8h</label>
+                                                                </section>
+
+                                                                    <section>
+                                                                          <h2>Bodyweight</h2>
+                                                                                <input id="weight" type="number" step="0.1" placeholder="kg" />
+                                                                                      <p>Target calories: <strong><span id="calories">—</span> kcal</strong></p>
+                                                                                            <button id="addCalories">+200 kcal</button>
+                                                                                                </section>
+
+                                                                                                    <section>
+                                                                                                          <h2>Workout</h2>
+                                                                                                                <textarea id="workout" rows="4" placeholder="Wall push-ups 4x12\nSquats 4x10"></textarea>
+                                                                                                                    </section>
+
+                                                                                                                        <button id="weak">I feel weak today</button>
+                                                                                                                          </main>
+
+                                                                                                                            <script src="app.js"></script>
+                                                                                                                            </body>
+                                                                                                                            </html>
