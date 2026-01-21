@@ -1,27 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Strength Tracker V4</title>
-<link rel="stylesheet" href="style.css">
-<link rel="manifest" href="manifest.json">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <title>Offline Workout Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- PWA meta -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#111827" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div id="app">
-<aside id="sidebar">
-<h2>Strength Tracker</h2>
-<nav>
-<button data-page="dashboard">Dashboard</button>
-<button data-page="workouts">Workouts</button>
-<button data-page="progress">Progress</button>
-<button data-page="settings">Settings</button>
-</nav>
-<button id="themeToggle">Toggle Dark/Light</button>
-</aside>
-<main id="mainContent"></main>
-</div>
-<script src="app.js"></script>
+  <header class="app-header">
+    <h1>Offline Workout Tracker</h1>
+    <p class="subtitle">Personal, offline, and fully on your device.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-button active" data-tab="profile">Profile</button>
+    <button class="tab-button" data-tab="workouts">Workouts</button>
+    <button class="tab-button" data-tab="planner">Planner</button>
+    <button class="tab-button" data-tab="progress">Progress</button>
+    <button class="tab-button" data-tab="settings">Settings</button>
+  </nav>
+
+  <main>
+    <!-- Profile -->
+    <section id="profile" class="tab active">
+      <h2>User Profile & Personalization</h2>
+      <form id="profile-form" class="card">
+        <div class="field-group">
+          <label>Age</label>
+          <input type="number" id="age" min="1" />
+        </div>
+        <div class="field-group">
+          <label>Weight</label>
+          <input type="number" id="weight" step="0.1" />
+        </div>
+        <div class="field-group">
+          <label>Height (cm)</label>
+          <input type="number" id="height" />
+        </div>
+        <div class="field-group">
+          <label>Fitness Level</label>
+          <select id="fitnessLevel">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Primary Goal</label>
+          <select id="goal">
+            <option value="muscle">Muscle gain</option>
+            <option value="weight">Weight loss</option>
+            <option value="endurance">Endurance</option>
+            <option value="flexibility">Flexibility</option>
+          </select>
+        </div>
+        <button type="submit" class="primary">Save Profile</button>
+      </form>
+
+      <div class="card">
+        <h3>Quick Summary</h3>
+        <p id="profile-summary">No profile saved yet.</p>
+      </div>
+    </section>
+
+    <!-- Workouts -->
+    <section id="workouts" class="tab">
+      <h2>Workout Programs & Exercise Library</h2>
+
+      <div class="card">
+        <h3>Create Custom Workout</h3>
+        <form id="workout-form">
+          <div class="field-group">
+            <label>Workout Name</label>
+            <input type="text" id="workoutName" required />
+          </div>
+          <div class="field-group">
+            <label>Description</label>
+            <textarea id="workoutDescription"></textarea>
+          </div>
+          <div class="field-group">
+            <label>Difficulty</label>
+            <select id="workoutDifficulty">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Target Muscles (comma separated)</label>
+            <input type="text" id="workoutMuscles" />
+          </div>
+          <div class="field-group">
+            <label>Equipment</label>
+            <input type="text" id="workoutEquipment" placeholder="e.g. dumbbells, bodyweight" />
+          </div>
+          <button type="submit" class="primary">Save Workout</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Saved Workouts</h3>
+        <ul id="workout-list" class="list"></ul>
+      </div>
+    </section>
+
+    <!-- Planner -->
+    <section id="planner" class="tab">
+      <h2>Daily Checklist & Planner</h2>
+
+      <div class="card">
+        <h3>Today</h3>
+        <p id="today-date"></p>
+        <form id="today-checklist">
+          <label class="checkbox">
+            <input type="checkbox" id="taskWorkout" />
+            <span>Workout completed</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="taskStretch" />
+            <span>Stretching</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="taskHydration" />
+            <span>Hydration goal</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="taskMeditation" />
+            <span>Meditation</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="taskSleep" />
+            <span>Sleep target met</span>
+          </label>
+          <button type="submit" class="primary">Save Today</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Calendar (Last 14 Days)</h3>
+        <div id="calendar" class="calendar"></div>
+      </div>
+    </section>
+
+    <!-- Progress -->
+    <section id="progress" class="tab">
+      <h2>Progress Tracking</h2>
+
+      <div class="card">
+        <h3>Log Workout Stats</h3>
+        <form id="progress-form">
+          <div class="field-group">
+            <label>Date</label>
+            <input type="date" id="progressDate" />
+          </div>
+          <div class="field-group">
+            <label>Weight</label>
+            <input type="number" id="progressWeight" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Workout Notes (sets/reps/duration)</label>
+            <textarea id="progressNotes"></textarea>
+          </div>
+          <div class="field-group">
+            <label>Personal Record (optional)</label>
+            <input type="text" id="progressPR" placeholder="e.g. Squat 100kg, 5km in 25:00" />
+          </div>
+          <button type="submit" class="primary">Save Entry</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Recent Entries</h3>
+        <ul id="progress-list" class="list"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Streak</h3>
+        <p id="streak-text">No streak yet.</p>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="settings" class="tab">
+      <h2>Settings & Customization</h2>
+
+      <div class="card">
+        <h3>Appearance</h3>
+        <div class="field-group">
+          <label>Theme</label>
+          <select id="themeSelect">
+            <option value="system">System default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Font Size</label>
+          <select id="fontSizeSelect">
+            <option value="normal">Normal</option>
+            <option value="large">Large</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Units</h3>
+        <div class="field-group">
+          <label>Weight Units</label>
+          <select id="weightUnitSelect">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Distance Units</label>
+          <select id="distanceUnitSelect">
+            <option value="km">km</option>
+            <option value="miles">miles</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Reminders</h3>
+        <p>Browser notifications depend on your device and permission settings.</p>
+        <button id="enableNotifications" class="primary">Enable Notifications</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>All data is stored locally on this device.</p>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>
