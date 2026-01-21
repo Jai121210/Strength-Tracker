@@ -2,12 +2,13 @@
 
 // TODO: replace with your Firebase config from the console
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA8D4HWK7vh_pghrYpv8MKTSe6N4aA50MU",
+  authDomain: "strength-tracker-cacd4.firebaseapp.com",
+  projectId: "strength-tracker-cacd4",
+  storageBucket: "strength-tracker-cacd4.firebasestorage.app",
+  messagingSenderId: "716460577723",
+  appId: "1:716460577723:web:8f71cf8014e7b5a42caa9e",
+  measurementId: "G-4VKHNM4HZH"
 };
 
 firebase.initializeApp(firebaseConfig);
