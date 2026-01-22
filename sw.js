@@ -1,13 +1,5 @@
 const CACHE_NAME = "strength-cache-v2";
-const ASSETS = [
-  "/", 
-  "/index.html",
-  "/styles.css",
-  "/app.js",
-  "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png"
-];
+const ASSETS = [ "/Strength-Tracker/", "/Strength-Tracker/index.html", "/Strength-Tracker/styles.css", "/Strength-Tracker/app.js", "/Strength-Tracker/manifest.webmanifest", "/Strength-Tracker/icons/icon-192.png", "/Strength-Tracker/icons/icon-512.png" ];
 
 // INSTALL — cache core files
 self.addEventListener("install", (event) => {
