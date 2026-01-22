@@ -44,3 +44,5 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+
+self.addEventListener("install", () => { console.log("SW installing NEW version"); self.skipWaiting(); }); self.addEventListener("activate", () => { console.log("SW activated"); clients.claim(); });
