@@ -2,408 +2,291 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pulse - Offline Workout Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <title>Strength Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020617" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#050509" />
-  <link rel="icon" href="icons/icon-192.png" />
-
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 </head>
 <body>
-  <!-- LOGIN OVERLAY -->
+
+  <!-- LOGIN SCREEN -->
   <div id="login-screen" class="login-screen">
     <div class="login-card">
-      <h2>Login</h2>
-      <p class="muted small" style="margin-bottom:1rem;">
-        This app is locked to your account.
-      </p>
-
-      <div class="field-group">
-        <label>Email</label>
-        <input type="email" id="loginEmail" autocomplete="username" />
-      </div>
-
-      <div class="field-group">
-        <label>Password</label>
-        <input type="password" id="loginPass" autocomplete="current-password" />
-      </div>
-
-      <button id="loginBtn" class="primary" style="width:100%; margin-top:0.75rem;">
-        Enter
-      </button>
-
-      <p id="loginError" class="muted small" style="margin-top:0.5rem; display:none;">
-        Incorrect email or password.
-      </p>
+      <h1>Strength Tracker</h1>
+      <input id="loginEmail" type="email" placeholder="Email" />
+      <input id="loginPass" type="password" placeholder="Password" />
+      <button id="loginBtn">Log in</button>
+      <div id="loginError" class="error"></div>
     </div>
   </div>
 
-  <!-- APP CONTENT -->
-  <header class="app-header">
-    <div class="app-title">
-      <h1>Pulse</h1>
-      <span class="tagline">Workout, habits & stats</span>
-    </div>
-    <div class="app-badge">PWA</div>
-  </header>
+  <!-- SIDEBAR OVERLAY -->
+  <div id="sidebarOverlay"></div>
 
-  <nav class="tabs">
-    <button class="tab-button active" data-tab="home">Home</button>
-    <button class="tab-button" data-tab="profile">Profile</button>
-    <button class="tab-button" data-tab="workouts">Workouts</button>
-    <button class="tab-button" data-tab="planner">Planner</button>
-    <button class="tab-button" data-tab="progress">Progress</button>
-    <button class="tab-button" data-tab="settings">Settings</button>
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <h2>Strength Tracker</h2>
+      <button id="closeSidebar" class="sidebar-close">✕</button>
+    </div>
+    <ul class="sidebar-menu">
+      <li data-target="home">🏠 Home</li>
+      <li data-target="profile">👤 Profile</li>
+      <li data-target="workouts">🏋️ Exercises</li>
+      <li data-target="routines">📁 Routines</li>
+      <li data-target="session">🔥 Start Workout</li>
+      <li data-target="progress">📈 Progress</li>
+      <li data-target="planner">🗓 Planner</li>
+      <li data-target="settings">⚙️ Settings</li>
+      <li id="logoutBtnSidebar">🚪 Logout</li>
+    </ul>
   </nav>
 
-  <main>
-    <!-- HOME / STATS -->
+  <!-- HAMBURGER -->
+  <button id="openSidebar" class="hamburger">☰</button>
+
+  <!-- MAIN APP -->
+  <main id="app">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <span></span>
+      <button id="logoutBtn" class="chip chip-ghost">Logout</button>
+    </header>
+
+    <!-- HOME TAB -->
     <section id="home" class="tab active">
-      <h2>Today & Stats</h2>
-
-      <div class="grid-2">
-        <div class="card stat-card">
-          <div class="stat-label">Current streak</div>
-          <div class="stat-value" id="home-streak">0</div>
-          <div class="stat-sub" id="home-streak-sub">days in a row</div>
+      <h1>Dashboard</h1>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-label">Streak</div>
+          <div id="home-streak" class="card-value">0</div>
+          <div id="home-streak-sub" class="card-sub">days in a row</div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Workouts logged</div>
-          <div class="stat-value" id="home-workouts">0</div>
-          <div class="stat-sub">all time</div>
+        <div class="card">
+          <div class="card-label">Workouts logged</div>
+          <div id="home-workouts" class="card-value">0</div>
+          <div class="card-sub">total entries</div>
         </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card stat-card">
-          <div class="stat-label">Last workout</div>
-          <div class="stat-value" id="home-last-workout">–</div>
-          <div class="stat-sub">date</div>
+        <div class="card">
+          <div class="card-label">Last workout</div>
+          <div id="home-last-workout" class="card-value">–</div>
+          <div class="card-sub">most recent</div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Personal records</div>
-          <div class="stat-value" id="home-prs">0</div>
-          <div class="stat-sub">logged</div>
+        <div class="card">
+          <div class="card-label">PRs</div>
+          <div id="home-prs" class="card-value">0</div>
+          <div class="card-sub">personal records</div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Active Session</h3>
-          <span class="pill pill-soft">Live</span>
-        </div>
-
-        <form id="session-form" class="session-form">
-          <div class="field-group">
-            <label>Exercise</label>
-            <select id="sessionExercise">
-              <option value="">Select exercise</option>
-            </select>
-          </div>
-          <div class="session-row">
-            <div class="field-group">
-              <label>Target sets</label>
-              <input type="number" id="sessionTargetSets" min="1" value="3" />
-            </div>
-            <div class="field-group">
-              <label>Target reps</label>
-              <input type="number" id="sessionTargetReps" min="1" value="10" />
-            </div>
-          </div>
-        </form>
-
-        <div class="session-row session-stats">
-          <div>
-            <div class="session-label">Sets</div>
-            <div class="session-value" id="sessionSets">0</div>
-          </div>
-          <div>
-            <div class="session-label">Reps</div>
-            <div class="session-value" id="sessionReps">0</div>
-          </div>
-          <div>
-            <div class="session-label">Timer</div>
-            <div class="session-value" id="sessionTimer">00:00</div>
-          </div>
-        </div>
-
-        <div class="session-controls">
-          <button id="btnRepPlus" class="chip">+1 rep</button>
-          <button id="btnSetPlus" class="chip">+1 set</button>
-          <button id="btnTimerToggle" class="chip chip-accent">Start timer</button>
-          <button id="btnTimerReset" class="chip chip-ghost">Reset</button>
-        </div>
-
-        <p class="session-hint">
-          Use <strong>+1 rep</strong> and <strong>+1 set</strong> while you train. Timer is per exercise.
-        </p>
       </div>
     </section>
 
-    <!-- PROFILE -->
+    <!-- PROFILE TAB -->
     <section id="profile" class="tab">
-      <h2>Profile</h2>
-      <form id="profile-form" class="card">
-        <div class="field-row">
-          <div class="field-group">
-            <label>Age</label>
-            <input type="number" id="age" min="1" />
-          </div>
-          <div class="field-group">
-            <label>Weight</label>
-            <input type="number" id="weight" step="0.1" />
-          </div>
-          <div class="field-group">
-            <label>Height (cm)</label>
-            <input type="number" id="height" />
-          </div>
+      <h1>Profile</h1>
+      <form id="profile-form" class="form">
+        <label>Age <input id="age" type="number" /></label>
+        <label>Weight <input id="weight" type="number" /></label>
+        <label>Height (cm) <input id="height" type="number" /></label>
+        <label>Fitness level
+          <select id="fitnessLevel">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </label>
+        <label>Goal
+          <select id="goal">
+            <option value="muscle">Build muscle</option>
+            <option value="strength">Strength</option>
+            <option value="fatloss">Fat loss</option>
+          </select>
+        </label>
+        <button type="submit">Save profile</button>
+      </form>
+      <p id="profile-summary" class="muted"></p>
+    </section>
+
+    <!-- EXERCISES TAB -->
+    <section id="workouts" class="tab">
+      <h1>Exercises</h1>
+
+      <form id="exerciseForm" class="form">
+        <label>Name <input id="exerciseName" /></label>
+        <label>Description <input id="exerciseDescription" /></label>
+        <label>Muscles <input id="exerciseMuscles" /></label>
+        <label>Equipment <input id="exerciseEquipment" /></label>
+
+        <div class="grid-3">
+          <label>Sets <input id="exerciseSets" type="number" value="3" /></label>
+          <label>Reps <input id="exerciseReps" type="number" value="10" /></label>
+          <label>Rest (s) <input id="exerciseRest" type="number" value="60" /></label>
         </div>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label>Fitness level</label>
-            <select id="fitnessLevel">
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>Primary goal</label>
-            <select id="goal">
-              <option value="muscle">Muscle gain</option>
-              <option value="weight">Weight loss</option>
-              <option value="endurance">Endurance</option>
-              <option value="flexibility">Flexibility</option>
-            </select>
-          </div>
-        </div>
+        <label>Timer type
+          <select id="exerciseTimerType">
+            <option value="none">None</option>
+            <option value="stopwatch">Stopwatch</option>
+            <option value="countdown">Countdown</option>
+          </select>
+        </label>
 
-        <button type="submit" class="primary">Save profile</button>
+        <button type="submit">Add exercise</button>
       </form>
 
-      <div class="card">
-        <h3>Summary</h3>
-        <p id="profile-summary" class="muted">No profile saved yet.</p>
-      </div>
+      <h2>Saved exercises</h2>
+      <ul id="exerciseList" class="list"></ul>
     </section>
 
-    <!-- WORKOUTS -->
-    <section id="workouts" class="tab">
-      <h2>Workouts</h2>
+    <!-- ROUTINES TAB -->
+    <section id="routines" class="tab">
+      <h1>Routines</h1>
 
-      <div class="card">
-        <div class="card-header">
-          <h3>Create workout</h3>
-          <span class="pill">Custom</span>
+      <form id="routineForm" class="form">
+        <label>Routine name <input id="routineName" /></label>
+
+        <label>Add exercise</label>
+        <select id="routineExerciseSelect"></select>
+
+        <div class="grid-3">
+          <label>Sets <input id="routineSets" type="number" value="3" /></label>
+          <label>Reps <input id="routineReps" type="number" value="10" /></label>
+          <label>Rest (s) <input id="routineRest" type="number" value="60" /></label>
         </div>
-        <form id="workout-form">
-          <div class="field-group">
-            <label>Workout name</label>
-            <input type="text" id="workoutName" required />
+
+        <button id="routineAddExercise">Add to routine</button>
+        <button id="routineIncreaseAllRepsBtn" class="chip chip-ghost">+1 reps for all</button>
+
+        <h3>Routine exercises</h3>
+        <ul id="routineExercisesList" class="list"></ul>
+
+        <button type="submit">Save routine</button>
+      </form>
+
+      <h2>Saved routines</h2>
+      <ul id="routinesList" class="list"></ul>
+    </section>
+
+    <!-- SESSION TAB -->
+    <section id="session" class="tab">
+      <h1>Start workout</h1>
+
+      <label>Routine
+        <select id="sessionRoutineSelect"></select>
+      </label>
+
+      <div class="session-card">
+        <h2 id="sessionExerciseName">No routine selected</h2>
+        <p id="sessionSetInfo" class="muted"></p>
+        <p id="sessionRepInfo" class="muted"></p>
+
+        <div class="session-controls">
+          <button id="btnSessionRepPlus">+1 rep</button>
+          <button id="btnSessionSetDone">Set done</button>
+          <button id="btnSessionNextExercise" class="chip chip-ghost">Next exercise</button>
+        </div>
+
+        <div class="session-timers">
+          <div>
+            <div class="label">Rest timer</div>
+            <div id="sessionRestTimer" class="timer-display"></div>
           </div>
-          <div class="field-group">
-            <label>Description</label>
-            <textarea id="workoutDescription"></textarea>
-          </div>
-          <div class="field-row">
-            <div class="field-group">
-              <label>Difficulty</label>
-              <select id="workoutDifficulty">
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-              </select>
+
+          <div>
+            <div class="label">Exercise timer</div>
+            <div id="sessionExerciseTimer" class="timer-display">00:00</div>
+            <div class="session-controls">
+              <button id="btnSessionStartExerciseTimer">Start</button>
+              <button id="btnSessionStopExerciseTimer" class="chip chip-ghost">Stop</button>
             </div>
-            <div class="field-group">
-              <label>Target muscles</label>
-              <input type="text" id="workoutMuscles" placeholder="e.g. chest, triceps" />
-            </div>
           </div>
-          <div class="field-group">
-            <label>Equipment</label>
-            <input type="text" id="workoutEquipment" placeholder="e.g. dumbbells, bodyweight" />
-          </div>
-          <button type="submit" class="primary">Save workout</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Saved workouts</h3>
-          <span class="muted small" id="workout-count">0 total</span>
         </div>
-        <ul id="workout-list" class="list"></ul>
       </div>
     </section>
 
-    <!-- PLANNER -->
-    <section id="planner" class="tab">
-      <h2>Planner</h2>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Today</h3>
-          <span class="muted small" id="today-date"></span>
-        </div>
-        <form id="today-checklist" class="checklist">
-          <label class="checkbox">
-            <input type="checkbox" id="taskWorkout" />
-            <span>Workout completed</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="taskStretch" />
-            <span>Stretching</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="taskHydration" />
-            <span>Hydration goal</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="taskMeditation" />
-            <span>Meditation</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="taskSleep" />
-            <span>Sleep target met</span>
-          </label>
-          <button type="submit" class="primary">Save today</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3>Last 14 days</h3>
-          <span class="muted small">Workout completion</span>
-        </div>
-        <div id="calendar" class="calendar"></div>
-      </div>
-    </section>
-
-    <!-- PROGRESS -->
+    <!-- PROGRESS TAB -->
     <section id="progress" class="tab">
-      <h2>Progress</h2>
+      <h1>Progress</h1>
 
-      <div class="card">
-        <div class="card-header">
-          <h3>Log workout</h3>
-          <span class="muted small">Weight, notes & PRs</span>
-        </div>
-        <form id="progress-form">
-          <div class="field-row">
-            <div class="field-group">
-              <label>Date</label>
-              <input type="date" id="progressDate" />
-            </div>
-            <div class="field-group">
-              <label>Weight</label>
-              <input type="number" id="progressWeight" step="0.1" />
-            </div>
-          </div>
-          <div class="field-group">
-            <label>Workout notes</label>
-            <textarea id="progressNotes" placeholder="Sets, reps, duration…"></textarea>
-          </div>
-          <div class="field-group">
-            <label>Personal record</label>
-            <input type="text" id="progressPR" placeholder="e.g. Bench 80kg x 5" />
-          </div>
-          <div class="field-group">
-             <label>Progress photo</label>
-              <input type="file" id="progressPhoto" accept="image/*" />
-          </div>
-          <button type="submit" class="primary">Save entry</button>
-        </form>
-      </div>
+      <form id="progress-form" class="form">
+        <label>Date <input id="progressDate" type="date" /></label>
+        <label>Weight <input id="progressWeight" type="number" /></label>
+        <label>Notes <textarea id="progressNotes"></textarea></label>
+        <label>PR <input id="progressPR" /></label>
+        <label>Photo <input id="progressPhoto" type="file" accept="image/*" /></label>
+        <button type="submit">Save entry</button>
+      </form>
 
-      <div class="card">
-        <div class="card-header">
-          <h3>Recent entries</h3>
-          <span class="muted small">Last 20</span>
-        </div>
-        <ul id="progress-list" class="list"></ul>
-      </div>
-
-      <div class="card">
-        <h3>Streak</h3>
-        <p id="streak-text" class="muted">No streak yet.</p>
-      </div>
+      <p id="streak-text" class="muted"></p>
+      <ul id="progress-list" class="list"></ul>
     </section>
 
-    <!-- SETTINGS -->
+    <!-- PLANNER TAB -->
+    <section id="planner" class="tab">
+      <h1>Planner</h1>
+
+      <p id="today-date" class="muted"></p>
+
+      <form id="today-checklist" class="form checklist">
+        <label><input id="taskWorkout" type="checkbox" /> Workout</label>
+        <label><input id="taskStretch" type="checkbox" /> Stretch</label>
+        <label><input id="taskHydration" type="checkbox" /> Hydration</label>
+        <label><input id="taskMeditation" type="checkbox" /> Mindfulness</label>
+        <label><input id="taskSleep" type="checkbox" /> Sleep</label>
+        <button type="submit">Save today</button>
+      </form>
+
+      <h2>Last 14 days</h2>
+      <div id="calendar" class="calendar"></div>
+    </section>
+
+    <!-- SETTINGS TAB -->
     <section id="settings" class="tab">
-      <h2>Settings</h2>
+      <h1>Settings</h1>
 
-      <div class="card">
-        <h3>Appearance</h3>
-        <div class="field-row">
-          <div class="field-group">
-            <label>Theme</label>
-            <select id="themeSelect">
-              <option value="dark">Dark (default)</option>
-              <option value="light">Light</option>
-              <option value="system">System</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>Font size</label>
-            <select id="fontSizeSelect">
-              <option value="normal">Normal</option>
-              <option value="large">Large</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <div class="form">
+        <label>Theme
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">System</option>
+          </select>
+        </label>
 
-      <div class="card">
-        <h3>Units</h3>
-        <div class="field-row">
-          <div class="field-group">
-            <label>Weight</label>
-            <select id="weightUnitSelect">
-              <option value="kg">kg</option>
-              <option value="lb">lb</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>Distance</label>
-            <select id="distanceUnitSelect">
-              <option value="km">km</option>
-              <option value="miles">miles</option>
-            </select>
-          </div>
-        </div>
-      </div>
+        <label>Font size
+          <select id="fontSizeSelect">
+            <option value="normal">Normal</option>
+            <option value="large">Large</option>
+          </select>
+        </label>
 
-      <div class="card">
-        <h3>Reminders</h3>
-        <p class="muted small">
-          Notifications are local to this device and depend on browser support.
-        </p>
-        <button id="enableNotifications" class="primary">Enable notifications</button>
-      </div>
+        <label>Weight unit
+          <select id="weightUnitSelect">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+          </select>
+        </label>
 
-      <div class="card">
-        <h3>Account</h3>
-        <button id="logoutBtn" class="primary" style="background: #ef4444; box-shadow:none;">
-          Log out
-        </button>
+        <label>Distance unit
+          <select id="distanceUnitSelect">
+            <option value="km">km</option>
+            <option value="mi">mi</option>
+          </select>
+        </label>
+
+        <button id="enableNotifications">Enable notifications</button>
       </div>
     </section>
+
   </main>
 
-  <footer class="app-footer">
-    <span>Data synced via your Firebase account.</span>
-  </footer>
-
-  <!-- Firebase (compat) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-<script src="app.js"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>

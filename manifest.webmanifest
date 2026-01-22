@@ -1,11 +1,10 @@
 {
-  "name": "Pulse - Workout Tracker",
-  "short_name": "Pulse",
+  "name": "Strength Tracker",
+  "short_name": "Strength",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#050509",
-  "theme_color": "#050509",
-  "description": "Workout, habits and stats synced via your account.",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "icons": [
     {
       "src": "icons/icon-192.png",

@@ -28,10 +28,12 @@ let appState = {
     fontSize: "normal",
     weightUnit: "kg",
     distanceUnit: "km"
-  }
+  },
+  customExercises: [],
+  routines: []
 };
 
-const DATA_DOC_ID = "appData"; // single doc per user
+const DATA_DOC_ID = "appData";
 
 function getUserDocRef() {
   if (!currentUser) return null;
@@ -110,7 +112,9 @@ async function loadAppStateFromCloud() {
         fontSize: data.settings?.fontSize || "normal",
         weightUnit: data.settings?.weightUnit || "kg",
         distanceUnit: data.settings?.distanceUnit || "km"
-      }
+      },
+      customExercises: data.customExercises || [],
+      routines: data.routines || []
     };
   } catch (e) {
     console.error("Error loading data:", e);
@@ -128,7 +132,7 @@ async function saveToCloud() {
   const ref = getUserDocRef();
   if (!ref) return;
   try {
-    await ref.set(appState);
+    await ref.set(appState, { merge: true });
   } catch (e) {
     console.error("Error saving data:", e);
   }
@@ -140,19 +144,54 @@ function todayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
-// ---------- TABS ----------
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
+}
 
-const tabButtons = document.querySelectorAll(".tab-button");
-const tabs = document.querySelectorAll(".tab");
+function formatTime(seconds) {
+  const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const s = String(seconds % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
 
-tabButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const target = btn.dataset.tab;
-    tabButtons.forEach((b) => b.classList.remove("active"));
-    tabs.forEach((t) => t.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(target).classList.add("active");
+// ---------- SIDEBAR NAVIGATION ----------
+
+const sidebar = document.getElementById("sidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+const openSidebar = document.getElementById("openSidebar");
+const closeSidebar = document.getElementById("closeSidebar");
+const sidebarItems = document.querySelectorAll(".sidebar-menu li");
+const logoutBtnSidebar = document.getElementById("logoutBtnSidebar");
+
+openSidebar.addEventListener("click", () => {
+  sidebar.classList.add("open");
+  sidebarOverlay.style.display = "block";
+});
+
+closeSidebar.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+  sidebarOverlay.style.display = "none";
+});
+
+sidebarOverlay.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+  sidebarOverlay.style.display = "none";
+});
+
+sidebarItems.forEach(item => {
+  item.addEventListener("click", () => {
+    const target = item.dataset.target;
+    if (target) {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.getElementById(target).classList.add("active");
+    }
+    sidebar.classList.remove("open");
+    sidebarOverlay.style.display = "none";
   });
+});
+
+logoutBtnSidebar.addEventListener("click", async () => {
+  await auth.signOut();
 });
 
 // ---------- PROFILE ----------
@@ -201,84 +240,6 @@ profileForm.addEventListener("submit", (e) => {
   scheduleSaveToCloud();
 });
 
-// ---------- WORKOUTS ----------
-
-const workoutForm = document.getElementById("workout-form");
-const workoutList = document.getElementById("workout-list");
-const workoutCount = document.getElementById("workout-count");
-const sessionExerciseSelect = document.getElementById("sessionExercise");
-
-function renderWorkouts() {
-  const workouts = appState.workouts;
-  workoutList.innerHTML = "";
-  workoutCount.textContent = `${workouts.length} total`;
-
-  sessionExerciseSelect.innerHTML = '<option value="">Select exercise</option>';
-  workouts.forEach((w) => {
-    const opt = document.createElement("option");
-    opt.value = w.name;
-    opt.textContent = w.name;
-    sessionExerciseSelect.appendChild(opt);
-  });
-
-  if (!workouts.length) {
-    const li = document.createElement("li");
-    li.textContent = "No workouts saved yet.";
-    workoutList.appendChild(li);
-    return;
-  }
-
-  workouts.forEach((w, index) => {
-    const li = document.createElement("li");
-    const title = document.createElement("div");
-    title.className = "list-title";
-    title.textContent = w.name;
-
-    const meta = document.createElement("div");
-    meta.className = "list-meta";
-    meta.textContent = `${w.difficulty} • Muscles: ${w.muscles || "n/a"} • Equipment: ${
-      w.equipment || "n/a"
-    }`;
-
-    const desc = document.createElement("div");
-    desc.style.fontSize = "0.8rem";
-    desc.style.marginTop = "0.15rem";
-    desc.textContent = w.description || "";
-
-    const removeBtn = document.createElement("button");
-    removeBtn.textContent = "Delete";
-    removeBtn.className = "chip chip-ghost";
-    removeBtn.style.marginTop = "0.35rem";
-    removeBtn.addEventListener("click", () => {
-      appState.workouts = workouts.filter((_, i) => i !== index);
-      renderWorkouts();
-      scheduleSaveToCloud();
-    });
-
-    li.appendChild(title);
-    li.appendChild(meta);
-    if (w.description) li.appendChild(desc);
-    li.appendChild(removeBtn);
-    workoutList.appendChild(li);
-  });
-}
-
-workoutForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const workout = {
-    name: document.getElementById("workoutName").value.trim(),
-    description: document.getElementById("workoutDescription").value.trim(),
-    difficulty: document.getElementById("workoutDifficulty").value,
-    muscles: document.getElementById("workoutMuscles").value.trim(),
-    equipment: document.getElementById("workoutEquipment").value.trim()
-  };
-  if (!workout.name) return;
-  appState.workouts.push(workout);
-  workoutForm.reset();
-  renderWorkouts();
-  scheduleSaveToCloud();
-});
-
 // ---------- PLANNER / CHECKLIST ----------
 
 const todayDateEl = document.getElementById("today-date");
@@ -303,23 +264,26 @@ function renderTodayChecklist() {
   });
 }
 
-checklistForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const key = todayKey();
-  appState.checklist[key] = {
-    workout: document.getElementById("taskWorkout").checked,
-    stretch: document.getElementById("taskStretch").checked,
-    hydration: document.getElementById("taskHydration").checked,
-    meditation: document.getElementById("taskMeditation").checked,
-    sleep: document.getElementById("taskSleep").checked
-  };
-  renderCalendar();
-  renderStreak();
-  renderHomeStats();
-  scheduleSaveToCloud();
-});
+if (checklistForm) {
+  checklistForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const key = todayKey();
+    appState.checklist[key] = {
+      workout: document.getElementById("taskWorkout").checked,
+      stretch: document.getElementById("taskStretch").checked,
+      hydration: document.getElementById("taskHydration").checked,
+      meditation: document.getElementById("taskMeditation").checked,
+      sleep: document.getElementById("taskSleep").checked
+    };
+    renderCalendar();
+    renderStreak();
+    renderHomeStats();
+    scheduleSaveToCloud();
+  });
+}
 
 function renderCalendar() {
+  if (!calendarEl) return;
   const checklist = appState.checklist;
   calendarEl.innerHTML = "";
   const today = new Date();
@@ -351,6 +315,7 @@ const progressList = document.getElementById("progress-list");
 const streakText = document.getElementById("streak-text");
 
 function renderProgress() {
+  if (!progressList) return;
   const entries = appState.progress;
   const settings = appState.settings;
   const weightUnit = settings.weightUnit || "kg";
@@ -406,46 +371,54 @@ function renderProgress() {
   });
 }
 
-progressForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+if (progressForm) {
+  progressForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  const dateInput = document.getElementById("progressDate").value;
-  const date = dateInput || todayKey();
-  const weight = Number(document.getElementById("progressWeight").value) || null;
-  const notes = document.getElementById("progressNotes").value.trim();
-  const pr = document.getElementById("progressPR").value.trim();
-  const photoFile = document.getElementById("progressPhoto").files[0];
+    const dateInput = document.getElementById("progressDate").value;
+    const date = dateInput || todayKey();
+    const weight = Number(document.getElementById("progressWeight").value) || null;
+    const notes = document.getElementById("progressNotes").value.trim();
+    const pr = document.getElementById("progressPR").value.trim();
+    const photoFile = document.getElementById("progressPhoto").files[0];
 
-  let photoURL = null;
+    let photoURL = null;
 
-  if (photoFile && currentUser) {
-    try {
-      const storageRef = storage
-        .ref()
-        .child(`users/${currentUser.uid}/progressPhotos/${date}-${photoFile.name}`);
-      await storageRef.put(photoFile);
-      photoURL = await storageRef.getDownloadURL();
-    } catch (err) {
-      console.error("Photo upload failed:", err);
+    if (photoFile && currentUser) {
+      try {
+        const storageRef = storage
+          .ref()
+          .child(`users/${currentUser.uid}/progressPhotos/${date}-${photoFile.name}`);
+        await storageRef.put(photoFile);
+        photoURL = await storageRef.getDownloadURL();
+      } catch (err) {
+        console.error("Photo upload failed:", err);
+      }
     }
-  }
 
-  const entry = {
-    date,
-    weight,
-    notes,
-    pr,
-    photoURL
-  };
+    const entry = {
+      date,
+      weight,
+      notes,
+      pr,
+      photoURL
+    };
 
-  appState.progress.push(entry);
-  progressForm.reset();
-  renderProgress();
-  renderHomeStats();
-  scheduleSaveToCloud();
-});
+    appState.progress.push(entry);
+    progressForm.reset();
+    renderProgress();
+    renderHomeStats();
+    scheduleSaveToCloud();
+  });
+}
 
 // ---------- STREAK & HOME STATS ----------
+
+const homeStreak = document.getElementById("home-streak");
+const homeStreakSub = document.getElementById("home-streak-sub");
+const homeWorkouts = document.getElementById("home-workouts");
+const homeLastWorkout = document.getElementById("home-last-workout");
+const homePRs = document.getElementById("home-prs");
 
 function computeStreak() {
   const checklist = appState.checklist;
@@ -465,6 +438,7 @@ function computeStreak() {
 }
 
 function renderStreak() {
+  if (!streakText) return;
   const streak = computeStreak();
   if (streak === 0) {
     streakText.textContent = "No current streak. Start today.";
@@ -475,13 +449,8 @@ function renderStreak() {
   }
 }
 
-const homeStreak = document.getElementById("home-streak");
-const homeStreakSub = document.getElementById("home-streak-sub");
-const homeWorkouts = document.getElementById("home-workouts");
-const homeLastWorkout = document.getElementById("home-last-workout");
-const homePRs = document.getElementById("home-prs");
-
 function renderHomeStats() {
+  if (!homeStreak) return;
   const streak = computeStreak();
   homeStreak.textContent = streak;
   homeStreakSub.textContent = "days in a row";
@@ -500,105 +469,437 @@ function renderHomeStats() {
   homePRs.textContent = prs;
 }
 
-// ---------- ACTIVE SESSION (REPS + TIMER) ----------
+// ---------- CUSTOM EXERCISES ----------
 
-let sessionState = {
-  exercise: "",
-  sets: 0,
-  reps: 0,
-  timerSeconds: 0,
-  timerRunning: false,
-  timerId: null
+const exerciseForm = document.getElementById("exerciseForm");
+const exerciseList = document.getElementById("exerciseList");
+
+function renderExercises() {
+  if (!exerciseList) return;
+  const exercises = appState.customExercises;
+  exerciseList.innerHTML = "";
+
+  if (!exercises.length) {
+    const li = document.createElement("li");
+    li.textContent = "No exercises yet. Create one.";
+    exerciseList.appendChild(li);
+    return;
+  }
+
+  exercises.forEach((ex) => {
+    const li = document.createElement("li");
+    const title = document.createElement("div");
+    title.className = "list-title";
+    title.textContent = ex.name;
+
+    const meta = document.createElement("div");
+    meta.className = "list-meta";
+    meta.textContent = `${ex.muscles || "n/a"} • ${ex.equipment || "Bodyweight"} • ${
+      ex.defaultSets || 0
+    }x${ex.defaultReps || 0} • Rest ${ex.restSeconds || 0}s`;
+
+    const desc = document.createElement("div");
+    desc.style.fontSize = "0.8rem";
+    desc.style.marginTop = "0.15rem";
+    desc.textContent = ex.description || "";
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.className = "chip chip-ghost";
+    delBtn.style.marginTop = "0.35rem";
+    delBtn.addEventListener("click", () => {
+      appState.customExercises = exercises.filter((e) => e.id !== ex.id);
+      renderExercises();
+      renderRoutines();
+      scheduleSaveToCloud();
+    });
+
+    li.appendChild(title);
+    li.appendChild(meta);
+    if (ex.description) li.appendChild(desc);
+    li.appendChild(delBtn);
+    exerciseList.appendChild(li);
+  });
+}
+
+if (exerciseForm) {
+  exerciseForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const ex = {
+      id: uuid(),
+      name: document.getElementById("exerciseName").value.trim(),
+      description: document.getElementById("exerciseDescription").value.trim(),
+      muscles: document.getElementById("exerciseMuscles").value.trim(),
+      equipment: document.getElementById("exerciseEquipment").value.trim(),
+      defaultSets: Number(document.getElementById("exerciseSets").value) || 3,
+      defaultReps: Number(document.getElementById("exerciseReps").value) || 10,
+      restSeconds: Number(document.getElementById("exerciseRest").value) || 60,
+      timerType: document.getElementById("exerciseTimerType").value
+    };
+    if (!ex.name) return;
+    appState.customExercises.push(ex);
+    exerciseForm.reset();
+    renderExercises();
+    renderRoutines();
+    scheduleSaveToCloud();
+  });
+}
+
+// ---------- ROUTINES ----------
+
+const routineForm = document.getElementById("routineForm");
+const routineNameInput = document.getElementById("routineName");
+const routineExerciseSelect = document.getElementById("routineExerciseSelect");
+const routineSetsInput = document.getElementById("routineSets");
+const routineRepsInput = document.getElementById("routineReps");
+const routineRestInput = document.getElementById("routineRest");
+const routineExercisesList = document.getElementById("routineExercisesList");
+const routinesList = document.getElementById("routinesList");
+const routineAddExerciseBtn = document.getElementById("routineAddExercise");
+const routineIncreaseAllRepsBtn = document.getElementById("routineIncreaseAllRepsBtn");
+
+let currentRoutineDraft = {
+  id: null,
+  name: "",
+  exercises: []
 };
 
-const sessionSetsEl = document.getElementById("sessionSets");
-const sessionRepsEl = document.getElementById("sessionReps");
-const sessionTimerEl = document.getElementById("sessionTimer");
-const btnRepPlus = document.getElementById("btnRepPlus");
-const btnSetPlus = document.getElementById("btnSetPlus");
-const btnTimerToggle = document.getElementById("btnTimerToggle");
-const btnTimerReset = document.getElementById("btnTimerReset");
-const sessionTargetSets = document.getElementById("sessionTargetSets");
-const sessionTargetReps = document.getElementById("sessionTargetReps");
-
-function formatTime(seconds) {
-  const m = String(Math.floor(seconds / 60)).padStart(2, "0");
-  const s = String(seconds % 60).padStart(2, "0");
-  return `${m}:${s}`;
+function refreshRoutineExerciseSelect() {
+  if (!routineExerciseSelect) return;
+  routineExerciseSelect.innerHTML = '<option value="">Select exercise</option>';
+  appState.customExercises.forEach((ex) => {
+    const opt = document.createElement("option");
+    opt.value = ex.id;
+    opt.textContent = ex.name;
+    routineExerciseSelect.appendChild(opt);
+  });
 }
 
-function renderSession() {
-  sessionSetsEl.textContent = sessionState.sets;
-  sessionRepsEl.textContent = sessionState.reps;
-  sessionTimerEl.textContent = formatTime(sessionState.timerSeconds);
+function renderRoutineDraft() {
+  if (!routineExercisesList) return;
+  routineExercisesList.innerHTML = "";
+  currentRoutineDraft.exercises.forEach((item, index) => {
+    const ex = appState.customExercises.find((e) => e.id === item.exerciseId);
+    const li = document.createElement("li");
+    li.textContent = `${ex ? ex.name : "Unknown"} — ${item.sets}x${item.reps}, Rest ${
+      item.restSeconds
+    }s`;
+    const del = document.createElement("button");
+    del.textContent = "Remove";
+    del.className = "chip chip-ghost";
+    del.style.marginLeft = "0.5rem";
+    del.addEventListener("click", () => {
+      currentRoutineDraft.exercises.splice(index, 1);
+      renderRoutineDraft();
+    });
+    li.appendChild(del);
+    routineExercisesList.appendChild(li);
+  });
 }
 
-function startTimer() {
-  if (sessionState.timerRunning) return;
-  sessionState.timerRunning = true;
-  btnTimerToggle.textContent = "Pause timer";
-  sessionState.timerId = setInterval(() => {
-    sessionState.timerSeconds += 1;
-    sessionTimerEl.textContent = formatTime(sessionState.timerSeconds);
-  }, 1000);
+function renderRoutines() {
+  if (!routinesList) return;
+  routinesList.innerHTML = "";
+  const routines = appState.routines;
+  if (!routines.length) {
+    const li = document.createElement("li");
+    li.textContent = "No routines yet. Create one.";
+    routinesList.appendChild(li);
+    return;
+  }
+
+  routines.forEach((r) => {
+    const li = document.createElement("li");
+    const title = document.createElement("div");
+    title.className = "list-title";
+    title.textContent = r.name;
+
+    const meta = document.createElement("div");
+    meta.className = "list-meta";
+    meta.textContent = `${r.exercises.length} exercises`;
+
+    const startBtn = document.createElement("button");
+    startBtn.textContent = "Start";
+    startBtn.className = "chip";
+    startBtn.style.marginTop = "0.35rem";
+    startBtn.addEventListener("click", () => {
+      startRoutineSession(r.id);
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.getElementById("session").classList.add("active");
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.className = "chip chip-ghost";
+    delBtn.style.marginTop = "0.35rem";
+    delBtn.style.marginLeft = "0.5rem";
+    delBtn.addEventListener("click", () => {
+      appState.routines = routines.filter((x) => x.id !== r.id);
+      renderRoutines();
+      scheduleSaveToCloud();
+    });
+
+    li.appendChild(title);
+    li.appendChild(meta);
+    li.appendChild(startBtn);
+    li.appendChild(delBtn);
+    routinesList.appendChild(li);
+  });
+
+  refreshRoutineSelectForSession();
 }
 
-function pauseTimer() {
-  sessionState.timerRunning = false;
-  btnTimerToggle.textContent = "Start timer";
-  if (sessionState.timerId) {
-    clearInterval(sessionState.timerId);
-    sessionState.timerId = null;
+if (routineAddExerciseBtn) {
+  routineAddExerciseBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const exId = routineExerciseSelect.value;
+    if (!exId) return;
+    const sets = Number(routineSetsInput.value) || 3;
+    const reps = Number(routineRepsInput.value) || 10;
+    const restSeconds = Number(routineRestInput.value) || 60;
+    currentRoutineDraft.exercises.push({ exerciseId: exId, sets, reps, restSeconds });
+    renderRoutineDraft();
+  });
+}
+
+if (routineForm) {
+  routineForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = routineNameInput.value.trim();
+    if (!name || !currentRoutineDraft.exercises.length) return;
+    const routine = {
+      id: uuid(),
+      name,
+      exercises: [...currentRoutineDraft.exercises]
+    };
+    appState.routines.push(routine);
+    currentRoutineDraft = { id: null, name: "", exercises: [] };
+    routineForm.reset();
+    renderRoutineDraft();
+    renderRoutines();
+    scheduleSaveToCloud();
+  });
+}
+
+if (routineIncreaseAllRepsBtn) {
+  routineIncreaseAllRepsBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    currentRoutineDraft.exercises = currentRoutineDraft.exercises.map((item) => ({
+      ...item,
+      reps: item.reps + 1
+    }));
+    renderRoutineDraft();
+  });
+}
+
+// ---------- ROUTINE SESSION ----------
+
+const sessionRoutineSelect = document.getElementById("sessionRoutineSelect");
+const sessionExerciseName = document.getElementById("sessionExerciseName");
+const sessionSetInfo = document.getElementById("sessionSetInfo");
+const sessionRepInfo = document.getElementById("sessionRepInfo");
+const sessionRestTimer = document.getElementById("sessionRestTimer");
+const sessionExerciseTimer = document.getElementById("sessionExerciseTimer");
+const btnSessionRepPlus = document.getElementById("btnSessionRepPlus");
+const btnSessionSetDone = document.getElementById("btnSessionSetDone");
+const btnSessionNextExercise = document.getElementById("btnSessionNextExercise");
+const btnSessionStartExerciseTimer = document.getElementById("btnSessionStartExerciseTimer");
+const btnSessionStopExerciseTimer = document.getElementById("btnSessionStopExerciseTimer");
+
+let routineSession = {
+  routineId: null,
+  exerciseIndex: 0,
+  currentSet: 1,
+  currentReps: 0,
+  restSecondsLeft: 0,
+  restTimerId: null,
+  exerciseSeconds: 0,
+  exerciseTimerId: null,
+  exerciseTimerRunning: false
+};
+
+function refreshRoutineSelectForSession() {
+  if (!sessionRoutineSelect) return;
+  sessionRoutineSelect.innerHTML = '<option value="">Select routine</option>';
+  appState.routines.forEach((r) => {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = r.name;
+    sessionRoutineSelect.appendChild(opt);
+  });
+}
+
+function stopRestTimer() {
+  if (routineSession.restTimerId) {
+    clearInterval(routineSession.restTimerId);
+    routineSession.restTimerId = null;
+  }
+  routineSession.restSecondsLeft = 0;
+  if (sessionRestTimer) sessionRestTimer.textContent = "";
+}
+
+function stopExerciseTimer() {
+  if (routineSession.exerciseTimerId) {
+    clearInterval(routineSession.exerciseTimerId);
+    routineSession.exerciseTimerId = null;
+  }
+  routineSession.exerciseTimerRunning = false;
+}
+
+function renderRoutineSession() {
+  if (!sessionExerciseName) return;
+  const routine = appState.routines.find((r) => r.id === routineSession.routineId);
+  if (!routine) {
+    sessionExerciseName.textContent = "No routine selected.";
+    sessionSetInfo.textContent = "";
+    sessionRepInfo.textContent = "";
+    if (sessionRestTimer) sessionRestTimer.textContent = "";
+    if (sessionExerciseTimer) sessionExerciseTimer.textContent = "00:00";
+    return;
+  }
+
+  const item = routine.exercises[routineSession.exerciseIndex];
+  const ex = appState.customExercises.find((e) => e.id === item.exerciseId);
+
+  if (!ex) {
+    sessionExerciseName.textContent = "Unknown exercise.";
+    return;
+  }
+
+  sessionExerciseName.textContent = ex.name;
+  sessionSetInfo.textContent = `Set ${routineSession.currentSet} of ${item.sets}`;
+  sessionRepInfo.textContent = `${routineSession.currentReps} / ${item.reps} reps`;
+
+  if (sessionRestTimer && routineSession.restSecondsLeft > 0) {
+    sessionRestTimer.textContent = `Rest: ${formatTime(routineSession.restSecondsLeft)}`;
+  }
+
+  if (sessionExerciseTimer) {
+    sessionExerciseTimer.textContent = formatTime(routineSession.exerciseSeconds);
   }
 }
 
-function resetTimer() {
-  pauseTimer();
-  sessionState.timerSeconds = 0;
-  renderSession();
+function startRoutineSession(routineId) {
+  routineSession = {
+    routineId,
+    exerciseIndex: 0,
+    currentSet: 1,
+    currentReps: 0,
+    restSecondsLeft: 0,
+    restTimerId: null,
+    exerciseSeconds: 0,
+    exerciseTimerId: null,
+    exerciseTimerRunning: false
+  };
+  stopRestTimer();
+  stopExerciseTimer();
+  renderRoutineSession();
 }
 
-btnRepPlus.addEventListener("click", (e) => {
-  e.preventDefault();
-  sessionState.reps += 1;
-  const target = Number(sessionTargetReps.value) || 0;
-  if (target && sessionState.reps >= target) {
-    sessionState.sets += 1;
-    sessionState.reps = 0;
-  }
-  renderSession();
-});
+if (sessionRoutineSelect) {
+  sessionRoutineSelect.addEventListener("change", () => {
+    const id = sessionRoutineSelect.value;
+    if (!id) return;
+    startRoutineSession(id);
+  });
+}
 
-btnSetPlus.addEventListener("click", (e) => {
-  e.preventDefault();
-  sessionState.sets += 1;
-  renderSession();
-});
+if (btnSessionRepPlus) {
+  btnSessionRepPlus.addEventListener("click", (e) => {
+    e.preventDefault();
+    const routine = appState.routines.find((r) => r.id === routineSession.routineId);
+    if (!routine) return;
+    const item = routine.exercises[routineSession.exerciseIndex];
+    routineSession.currentReps += 1;
+    if (routineSession.currentReps >= item.reps) {
+      routineSession.currentReps = item.reps;
+    }
+    renderRoutineSession();
+  });
+}
 
-btnTimerToggle.addEventListener("click", (e) => {
-  e.preventDefault();
-  if (sessionState.timerRunning) {
-    pauseTimer();
-  } else {
-    startTimer();
-  }
-});
+if (btnSessionSetDone) {
+  btnSessionSetDone.addEventListener("click", (e) => {
+    e.preventDefault();
+    const routine = appState.routines.find((r) => r.id === routineSession.routineId);
+    if (!routine) return;
+    const item = routine.exercises[routineSession.exerciseIndex];
 
-btnTimerReset.addEventListener("click", (e) => {
-  e.preventDefault();
-  resetTimer();
-  sessionState.sets = 0;
-  sessionState.reps = 0;
-  renderSession();
-});
+    if (routineSession.currentSet < item.sets) {
+      routineSession.currentSet += 1;
+      routineSession.currentReps = 0;
+      stopRestTimer();
+      routineSession.restSecondsLeft = item.restSeconds || 60;
+      if (sessionRestTimer) {
+        sessionRestTimer.textContent = `Rest: ${formatTime(routineSession.restSecondsLeft)}`;
+      }
+      routineSession.restTimerId = setInterval(() => {
+        routineSession.restSecondsLeft -= 1;
+        if (routineSession.restSecondsLeft <= 0) {
+          stopRestTimer();
+        } else if (sessionRestTimer) {
+          sessionRestTimer.textContent = `Rest: ${formatTime(routineSession.restSecondsLeft)}`;
+        }
+      }, 1000);
+    } else {
+      if (routineSession.exerciseIndex < routine.exercises.length - 1) {
+        routineSession.exerciseIndex += 1;
+        routineSession.currentSet = 1;
+        routineSession.currentReps = 0;
+        stopRestTimer();
+        stopExerciseTimer();
+        routineSession.exerciseSeconds = 0;
+      } else {
+        routineSession.exerciseIndex = 0;
+        routineSession.currentSet = 1;
+        routineSession.currentReps = 0;
+        stopRestTimer();
+        stopExerciseTimer();
+        routineSession.exerciseSeconds = 0;
+        alert("Workout complete. Nice work.");
+      }
+    }
+    renderRoutineSession();
+  });
+}
 
-sessionExerciseSelect.addEventListener("change", () => {
-  resetTimer();
-  sessionState.sets = 0;
-  sessionState.reps = 0;
-  sessionState.exercise = sessionExerciseSelect.value;
-  renderSession();
-});
+if (btnSessionNextExercise) {
+  btnSessionNextExercise.addEventListener("click", (e) => {
+    e.preventDefault();
+    const routine = appState.routines.find((r) => r.id === routineSession.routineId);
+    if (!routine) return;
+    if (routineSession.exerciseIndex < routine.exercises.length - 1) {
+      routineSession.exerciseIndex += 1;
+      routineSession.currentSet = 1;
+      routineSession.currentReps = 0;
+      stopRestTimer();
+      stopExerciseTimer();
+      routineSession.exerciseSeconds = 0;
+      renderRoutineSession();
+    }
+  });
+}
+
+if (btnSessionStartExerciseTimer) {
+  btnSessionStartExerciseTimer.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (routineSession.exerciseTimerRunning) return;
+    routineSession.exerciseTimerRunning = true;
+    routineSession.exerciseTimerId = setInterval(() => {
+      routineSession.exerciseSeconds += 1;
+      if (sessionExerciseTimer) {
+        sessionExerciseTimer.textContent = formatTime(routineSession.exerciseSeconds);
+      }
+    }, 1000);
+  });
+}
+
+if (btnSessionStopExerciseTimer) {
+  btnSessionStopExerciseTimer.addEventListener("click", (e) => {
+    e.preventDefault();
+    stopExerciseTimer();
+  });
+}
 
 // ---------- SETTINGS ----------
 
@@ -611,10 +912,10 @@ const enableNotificationsBtn = document.getElementById("enableNotifications");
 function applySettings() {
   const settings = appState.settings;
 
-  themeSelect.value = settings.theme;
-  fontSizeSelect.value = settings.fontSize;
-  weightUnitSelect.value = settings.weightUnit;
-  distanceUnitSelect.value = settings.distanceUnit;
+  if (themeSelect) themeSelect.value = settings.theme;
+  if (fontSizeSelect) fontSizeSelect.value = settings.fontSize;
+  if (weightUnitSelect) weightUnitSelect.value = settings.weightUnit;
+  if (distanceUnitSelect) distanceUnitSelect.value = settings.distanceUnit;
 
   const root = document.documentElement;
   if (settings.theme === "light") {
@@ -635,10 +936,10 @@ function applySettings() {
 
 function saveSettings() {
   appState.settings = {
-    theme: themeSelect.value,
-    fontSize: fontSizeSelect.value,
-    weightUnit: weightUnitSelect.value,
-    distanceUnit: distanceUnitSelect.value
+    theme: themeSelect ? themeSelect.value : "dark",
+    fontSize: fontSizeSelect ? fontSizeSelect.value : "normal",
+    weightUnit: weightUnitSelect ? weightUnitSelect.value : "kg",
+    distanceUnit: distanceUnitSelect ? distanceUnitSelect.value : "km"
   };
   applySettings();
   renderProfile();
@@ -647,23 +948,25 @@ function saveSettings() {
   scheduleSaveToCloud();
 }
 
-themeSelect.addEventListener("change", saveSettings);
-fontSizeSelect.addEventListener("change", saveSettings);
-weightUnitSelect.addEventListener("change", saveSettings);
-distanceUnitSelect.addEventListener("change", saveSettings);
+if (themeSelect) themeSelect.addEventListener("change", saveSettings);
+if (fontSizeSelect) fontSizeSelect.addEventListener("change", saveSettings);
+if (weightUnitSelect) weightUnitSelect.addEventListener("change", saveSettings);
+if (distanceUnitSelect) distanceUnitSelect.addEventListener("change", saveSettings);
 
-enableNotificationsBtn.addEventListener("click", async () => {
-  if (!("Notification" in window)) {
-    alert("Notifications are not supported in this browser.");
-    return;
-  }
-  const permission = await Notification.requestPermission();
-  if (permission === "granted") {
-    new Notification("Notifications enabled", {
-      body: "You’ll receive local reminders when this app is open."
-    });
-  }
-});
+if (enableNotificationsBtn) {
+  enableNotificationsBtn.addEventListener("click", async () => {
+    if (!("Notification" in window)) {
+      alert("Notifications are not supported in this browser.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      new Notification("Notifications enabled", {
+        body: "You’ll receive local reminders when this app is open."
+      });
+    }
+  });
+}
 
 // ---------- PWA SERVICE WORKER ----------
 
@@ -675,16 +978,18 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-// ---------- INITIAL UI (after auth) ----------
+// ---------- INITIAL UI ----------
 
 function initUI() {
   applySettings();
   renderProfile();
-  renderWorkouts();
   renderTodayChecklist();
   renderCalendar();
   renderProgress();
   renderStreak();
   renderHomeStats();
-  renderSession();
+  renderExercises();
+  refreshRoutineExerciseSelect();
+  renderRoutines();
+  renderRoutineSession();
 }
