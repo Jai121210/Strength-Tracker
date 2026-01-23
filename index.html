@@ -5,6 +5,7 @@
   <title>Strength Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#020617" />
+
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
 
@@ -14,23 +15,24 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-
+  <!-- No-cache for fresh deploys -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 </head>
+
 <body>
 
   <!-- LOGIN SCREEN -->
   <div id="login-screen" class="login-screen">
     <div class="login-card">
       <h1>Strength Tracker</h1>
+      <p class="login-tagline">Train hard. Track smarter.</p>
+
       <input id="loginEmail" type="email" placeholder="Email" />
       <input id="loginPass" type="password" placeholder="Password" />
-      <button id="loginBtn">Log in</button>
+
+      <button id="loginBtn" class="btn-primary">Log in</button>
       <div id="loginError" class="error"></div>
     </div>
   </div>
@@ -39,7 +41,7 @@
   <div id="sidebarOverlay"></div>
 
   <!-- SIDEBAR -->
-  <nav id="sidebar">
+  <nav id="sidebar" class="app-sidebar">
     <div class="sidebar-header">
       <h2>Strength Tracker</h2>
       <button id="closeSidebar" class="sidebar-close">✕</button>
@@ -60,34 +62,41 @@
   <!-- HAMBURGER -->
   <button id="openSidebar" class="hamburger">☰</button>
 
-  <!-- MAIN APP -->
-  <main id="app">
+  <!-- MAIN APP SHELL -->
+  <main id="app" class="app-shell">
 
     <!-- TOP BAR -->
     <header class="topbar">
-      <span></span>
+      <div class="topbar-left">
+        <span class="topbar-title">Strength Tracker</span>
+        <span class="topbar-accent">Premium training dashboard</span>
+      </div>
       <button id="logoutBtn" class="chip chip-ghost">Logout</button>
     </header>
 
     <!-- HOME TAB -->
     <section id="home" class="tab active">
       <h1>Dashboard</h1>
+
       <div class="card-grid">
         <div class="card">
           <div class="card-label">Streak</div>
           <div id="home-streak" class="card-value">0</div>
           <div id="home-streak-sub" class="card-sub">days in a row</div>
         </div>
+
         <div class="card">
           <div class="card-label">Workouts logged</div>
           <div id="home-workouts" class="card-value">0</div>
           <div class="card-sub">total entries</div>
         </div>
+
         <div class="card">
           <div class="card-label">Last workout</div>
           <div id="home-last-workout" class="card-value">–</div>
           <div class="card-sub">most recent</div>
         </div>
+
         <div class="card">
           <div class="card-label">PRs</div>
           <div id="home-prs" class="card-value">0</div>
@@ -99,10 +108,20 @@
     <!-- PROFILE TAB -->
     <section id="profile" class="tab">
       <h1>Profile</h1>
+
       <form id="profile-form" class="form">
-        <label>Age <input id="age" type="number" /></label>
-        <label>Weight <input id="weight" type="number" /></label>
-        <label>Height (cm) <input id="height" type="number" /></label>
+        <label>Age
+          <input id="age" type="number" />
+        </label>
+
+        <label>Weight
+          <input id="weight" type="number" />
+        </label>
+
+        <label>Height (cm)
+          <input id="height" type="number" />
+        </label>
+
         <label>Fitness level
           <select id="fitnessLevel">
             <option value="beginner">Beginner</option>
@@ -110,6 +129,7 @@
             <option value="advanced">Advanced</option>
           </select>
         </label>
+
         <label>Goal
           <select id="goal">
             <option value="muscle">Build muscle</option>
@@ -117,8 +137,10 @@
             <option value="fatloss">Fat loss</option>
           </select>
         </label>
-        <button type="submit">Save profile</button>
+
+        <button type="submit" class="btn-primary">Save profile</button>
       </form>
+
       <p id="profile-summary" class="muted"></p>
     </section>
 
@@ -127,15 +149,32 @@
       <h1>Exercises</h1>
 
       <form id="exerciseForm" class="form">
-        <label>Name <input id="exerciseName" /></label>
-        <label>Description <input id="exerciseDescription" /></label>
-        <label>Muscles <input id="exerciseMuscles" /></label>
-        <label>Equipment <input id="exerciseEquipment" /></label>
+        <label>Name
+          <input id="exerciseName" />
+        </label>
+
+        <label>Description
+          <input id="exerciseDescription" />
+        </label>
+
+        <label>Muscles
+          <input id="exerciseMuscles" />
+        </label>
+
+        <label>Equipment
+          <input id="exerciseEquipment" />
+        </label>
 
         <div class="grid-3">
-          <label>Sets <input id="exerciseSets" type="number" value="3" /></label>
-          <label>Reps <input id="exerciseReps" type="number" value="10" /></label>
-          <label>Rest (s) <input id="exerciseRest" type="number" value="60" /></label>
+          <label>Sets
+            <input id="exerciseSets" type="number" value="3" />
+          </label>
+          <label>Reps
+            <input id="exerciseReps" type="number" value="10" />
+          </label>
+          <label>Rest (s)
+            <input id="exerciseRest" type="number" value="60" />
+          </label>
         </div>
 
         <label>Timer type
@@ -146,7 +185,7 @@
           </select>
         </label>
 
-        <button type="submit">Add exercise</button>
+        <button type="submit" class="btn-primary">Add exercise</button>
       </form>
 
       <h2>Saved exercises</h2>
@@ -158,24 +197,32 @@
       <h1>Routines</h1>
 
       <form id="routineForm" class="form">
-        <label>Routine name <input id="routineName" /></label>
+        <label>Routine name
+          <input id="routineName" />
+        </label>
 
         <label>Add exercise</label>
         <select id="routineExerciseSelect"></select>
 
         <div class="grid-3">
-          <label>Sets <input id="routineSets" type="number" value="3" /></label>
-          <label>Reps <input id="routineReps" type="number" value="10" /></label>
-          <label>Rest (s) <input id="routineRest" type="number" value="60" /></label>
+          <label>Sets
+            <input id="routineSets" type="number" value="3" />
+          </label>
+          <label>Reps
+            <input id="routineReps" type="number" value="10" />
+          </label>
+          <label>Rest (s)
+            <input id="routineRest" type="number" value="60" />
+          </label>
         </div>
 
-        <button id="routineAddExercise">Add to routine</button>
+        <button id="routineAddExercise" class="btn-primary">Add to routine</button>
         <button id="routineIncreaseAllRepsBtn" class="chip chip-ghost">+1 reps for all</button>
 
         <h3>Routine exercises</h3>
         <ul id="routineExercisesList" class="list"></ul>
 
-        <button type="submit">Save routine</button>
+        <button type="submit" class="btn-primary">Save routine</button>
       </form>
 
       <h2>Saved routines</h2>
@@ -190,14 +237,14 @@
         <select id="sessionRoutineSelect"></select>
       </label>
 
-      <div class="session-card">
+      <div class="session-card card">
         <h2 id="sessionExerciseName">No routine selected</h2>
         <p id="sessionSetInfo" class="muted"></p>
         <p id="sessionRepInfo" class="muted"></p>
 
         <div class="session-controls">
-          <button id="btnSessionRepPlus">+1 rep</button>
-          <button id="btnSessionSetDone">Set done</button>
+          <button id="btnSessionRepPlus" class="btn-primary">+1 rep</button>
+          <button id="btnSessionSetDone" class="btn-primary">Set done</button>
           <button id="btnSessionNextExercise" class="chip chip-ghost">Next exercise</button>
         </div>
 
@@ -206,12 +253,11 @@
             <div class="label">Rest timer</div>
             <div id="sessionRestTimer" class="timer-display"></div>
           </div>
-
           <div>
             <div class="label">Exercise timer</div>
             <div id="sessionExerciseTimer" class="timer-display">00:00</div>
             <div class="session-controls">
-              <button id="btnSessionStartExerciseTimer">Start</button>
+              <button id="btnSessionStartExerciseTimer" class="btn-primary">Start</button>
               <button id="btnSessionStopExerciseTimer" class="chip chip-ghost">Stop</button>
             </div>
           </div>
@@ -224,12 +270,27 @@
       <h1>Progress</h1>
 
       <form id="progress-form" class="form">
-        <label>Date <input id="progressDate" type="date" /></label>
-        <label>Weight <input id="progressWeight" type="number" /></label>
-        <label>Notes <textarea id="progressNotes"></textarea></label>
-        <label>PR <input id="progressPR" /></label>
-        <label>Photo <input id="progressPhoto" type="file" accept="image/*" /></label>
-        <button type="submit">Save entry</button>
+        <label>Date
+          <input id="progressDate" type="date" />
+        </label>
+
+        <label>Weight
+          <input id="progressWeight" type="number" />
+        </label>
+
+        <label>Notes
+          <textarea id="progressNotes"></textarea>
+        </label>
+
+        <label>PR
+          <input id="progressPR" />
+        </label>
+
+        <label>Photo
+          <input id="progressPhoto" type="file" accept="image/*" />
+        </label>
+
+        <button type="submit" class="btn-primary">Save entry</button>
       </form>
 
       <p id="streak-text" class="muted"></p>
@@ -248,7 +309,8 @@
         <label><input id="taskHydration" type="checkbox" /> Hydration</label>
         <label><input id="taskMeditation" type="checkbox" /> Mindfulness</label>
         <label><input id="taskSleep" type="checkbox" /> Sleep</label>
-        <button type="submit">Save today</button>
+
+        <button type="submit" class="btn-primary">Save today</button>
       </form>
 
       <h2>Last 14 days</h2>
@@ -289,12 +351,12 @@
           </select>
         </label>
 
-        <button id="enableNotifications">Enable notifications</button>
+        <button id="enableNotifications" class="btn-primary">Enable notifications</button>
       </div>
     </section>
 
   </main>
 
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
