@@ -1,8 +1,18 @@
-const CACHE_NAME = "strength-cache-v2";
-const ASSETS = [ "/Strength-Tracker/", "/Strength-Tracker/index.html", "/Strength-Tracker/styles.css", "/Strength-Tracker/app.js", "/Strength-Tracker/manifest.webmanifest", "/Strength-Tracker/icons/icon-192.png", "/Strength-Tracker/icons/icon-512.png" ];
+const CACHE_NAME = "strength-cache-v4";
+
+const ASSETS = [
+  "/Strength-Tracker/",
+  "/Strength-Tracker/index.html",
+  "/Strength-Tracker/styles.css",
+  "/Strength-Tracker/app.js",
+  "/Strength-Tracker/manifest.webmanifest",
+  "/Strength-Tracker/icons/icon-192.png",
+  "/Strength-Tracker/icons/icon-512.png"
+];
 
 // INSTALL — cache core files
 self.addEventListener("install", (event) => {
+  console.log("SW installing NEW version");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
@@ -11,6 +21,7 @@ self.addEventListener("install", (event) => {
 
 // ACTIVATE — delete old caches
 self.addEventListener("activate", (event) => {
+  console.log("SW activated");
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -28,7 +39,6 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Update cache with fresh version
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
@@ -37,4 +47,8 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-self.addEventListener("install", () => { console.log("SW installing NEW version"); self.skipWaiting(); }); self.addEventListener("activate", () => { console.log("SW activated"); clients.claim(); });
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.location.reload();
+  });
+}
