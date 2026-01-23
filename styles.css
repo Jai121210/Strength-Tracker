@@ -3,17 +3,21 @@
 -------------------------------------------------- */
 
 :root {
-  --bg: #0d0d0d;
-  --bg-card: #1a1a1a;
-  --bg-light: #141414;
+  --bg: #050505;
+  --bg-gradient: radial-gradient(circle at top, #1a1a1a 0, #050505 55%, #000 100%);
+  --glass: rgba(15, 15, 15, 0.78);
+  --glass-strong: rgba(15, 15, 15, 0.92);
 
   --accent: #ff6a00;
+  --accent-soft: rgba(255, 106, 0, 0.35);
   --accent-light: #ff8c32;
 
   --text: #ffffff;
   --text-muted: #b3b3b3;
 
-  --border: #262626;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
   --danger: #ff3b30;
   --success: #00c853;
 }
@@ -22,13 +26,27 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Inter", "Roboto", sans-serif;
+  font-family: "Inter", "Roboto", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
-  background: var(--bg);
+  min-height: 100vh;
+  background: var(--bg-gradient);
   color: var(--text);
   padding-bottom: 80px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle background glow */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 106, 0, 0.18), transparent 55%),
+    radial-gradient(circle at 90% 100%, rgba(255, 106, 0, 0.12), transparent 55%);
+  z-index: -1;
 }
 
 /* --------------------------------------------------
@@ -37,26 +55,59 @@ body {
 
 .container {
   width: 92%;
-  max-width: 600px;
-  margin: auto;
-  padding-top: 20px;
+  max-width: 640px;
+  margin: 80px auto 0;
+}
+
+/* Glass card */
+.card {
+  background: var(--glass);
+  border-radius: 18px;
+  padding: 20px 18px;
+  border: 1px solid var(--border);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 18px 45px rgba(0, 0, 0, 0.85),
+    0 0 40px rgba(255, 106, 0, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  margin-bottom: 22px;
+  animation: cardIn 0.45s ease-out;
 }
 
 .section {
   margin: 28px 0;
 }
 
-.card {
-  background: var(--bg-card);
-  padding: 20px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  box-shadow: 0 0 20px rgba(255, 106, 0, 0.08);
-  margin-bottom: 20px;
+/* --------------------------------------------------
+   ANIMATIONS
+-------------------------------------------------- */
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 106, 0, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 25px 6px rgba(255, 106, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 106, 0, 0);
+  }
 }
 
 /* --------------------------------------------------
-   HEADERS
+   HEADERS & TEXT
 -------------------------------------------------- */
 
 h1, h2, h3 {
@@ -65,13 +116,87 @@ h1, h2, h3 {
 }
 
 h1 {
-  font-size: 1.9rem;
-  margin-bottom: 10px;
+  font-size: 2rem;
+  margin-bottom: 8px;
 }
 
 h2 {
   font-size: 1.4rem;
   margin-bottom: 12px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* --------------------------------------------------
+   TOP BAR
+-------------------------------------------------- */
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to bottom, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.7));
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-strong);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.topbar-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.topbar-accent {
+  font-size: 0.8rem;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* --------------------------------------------------
+   LOGIN SCREEN
+-------------------------------------------------- */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  background: var(--glass-strong);
+  padding: 32px 26px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 24px 60px rgba(0, 0, 0, 0.9),
+    0 0 55px rgba(255, 106, 0, 0.18);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  animation: cardIn 0.5s ease-out;
+}
+
+.login-card h1 {
+  margin-bottom: 6px;
+}
+
+.login-tagline {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
 }
 
 /* --------------------------------------------------
@@ -80,18 +205,25 @@ h2 {
 
 input, select {
   width: 100%;
-  padding: 12px;
+  padding: 12px 12px;
   margin: 8px 0 16px;
-  border-radius: 8px;
-  border: 2px solid var(--border);
-  background: var(--bg-light);
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: rgba(10, 10, 10, 0.85);
   color: var(--text);
   transition: 0.2s;
+  font-size: 0.95rem;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
 }
 
 input:focus, select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(255, 106, 0, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 18px rgba(255, 106, 0, 0.55);
   outline: none;
 }
 
@@ -102,85 +234,56 @@ input:focus, select:focus {
 button {
   cursor: pointer;
   font-weight: 700;
-  border-radius: 8px;
-  padding: 14px 20px;
-  transition: 0.2s;
+  border-radius: 999px;
+  padding: 13px 20px;
+  transition: 0.18s ease-out;
   border: none;
+  font-size: 0.95rem;
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
   color: #000;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 12px 30px rgba(255, 106, 0, 0.55);
 }
 
 .btn-primary:hover {
-  background: var(--accent-light);
-  box-shadow: 0 0 15px var(--accent);
+  transform: translateY(-1px) scale(1.01);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 16px 40px rgba(255, 106, 0, 0.75);
 }
 
 .btn-ghost {
   background: transparent;
-  border: 2px solid var(--accent);
-  color: var(--accent);
+  border: 1px solid var(--accent-soft);
+  color: var(--accent-light);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .btn-ghost:hover {
-  background: var(--accent);
-  color: #000;
+  background: rgba(255, 106, 0, 0.08);
+  box-shadow: 0 0 18px rgba(255, 106, 0, 0.45);
 }
 
-/* --------------------------------------------------
-   NAVIGATION / TOP BAR
--------------------------------------------------- */
-
-.topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background: var(--bg-card);
-  padding: 14px 20px;
-  border-bottom: 2px solid var(--accent);
-  display: flex;
-  justify-content: space-between;
+/* Small pill buttons (chips) */
+.chip {
+  display: inline-flex;
   align-items: center;
-  z-index: 20;
-}
-
-.topbar-title {
-  font-size: 1.3rem;
-  font-weight: 800;
-}
-
-/* --------------------------------------------------
-   LOGIN SCREEN
--------------------------------------------------- */
-
-.login-screen {
-  height: 100vh;
-  display: flex;
   justify-content: center;
-  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  background: rgba(10, 10, 10, 0.8);
+  color: var(--text-muted);
 }
 
-.login-card {
-  background: var(--bg-card);
-  padding: 30px;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 380px;
-  text-align: center;
-  box-shadow: 0 0 25px rgba(255, 106, 0, 0.15);
-}
-
-.login-card h1 {
-  margin-bottom: 20px;
-}
-
-.error {
-  color: var(--danger);
-  margin-top: 10px;
-  font-size: 0.9rem;
+.chip-ghost {
+  border-color: var(--accent-soft);
+  color: var(--accent-light);
 }
 
 /* --------------------------------------------------
@@ -193,18 +296,22 @@ button {
 }
 
 .list-item {
-  background: var(--bg-light);
-  padding: 14px;
-  border-radius: 10px;
+  background: rgba(10, 10, 10, 0.9);
+  padding: 14px 14px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   margin-bottom: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  transition: 0.18s;
 }
 
 .list-item:hover {
-  border-color: var(--accent);
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 18px rgba(255, 106, 0, 0.25);
+  transform: translateY(-1px);
 }
 
 /* --------------------------------------------------
@@ -214,22 +321,28 @@ button {
 .tabs {
   display: flex;
   margin-bottom: 20px;
-  border-bottom: 2px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  background: rgba(10, 10, 10, 0.85);
+  border: 1px solid var(--border);
 }
 
 .tab {
   flex: 1;
   text-align: center;
-  padding: 12px;
+  padding: 10px 8px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-muted);
-  transition: 0.2s;
+  border-radius: 999px;
+  transition: 0.18s;
+  font-size: 0.9rem;
 }
 
 .tab.active {
-  color: var(--accent);
-  border-bottom: 3px solid var(--accent);
+  color: #000;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  box-shadow: 0 0 18px rgba(255, 106, 0, 0.6);
 }
 
 /* --------------------------------------------------
@@ -238,23 +351,40 @@ button {
 
 .badge {
   padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
 .badge-orange {
-  background: var(--accent);
-  color: #000;
+  background: rgba(255, 106, 0, 0.16);
+  color: var(--accent-light);
+  border: 1px solid var(--accent-soft);
 }
 
 .badge-dark {
-  background: var(--bg-light);
+  background: rgba(0, 0, 0, 0.7);
   color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
 /* --------------------------------------------------
-   FOOTER / SPACING
+   STATUS / FEEDBACK
+-------------------------------------------------- */
+
+.error {
+  color: var(--danger);
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.success {
+  color: var(--success);
+  font-size: 0.9rem;
+}
+
+/* --------------------------------------------------
+   MISC
 -------------------------------------------------- */
 
 .spacer {
