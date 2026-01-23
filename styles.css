@@ -1,389 +1,266 @@
+/* --------------------------------------------------
+   GLOBAL THEME
+-------------------------------------------------- */
+
 :root {
-  --bg: #020617;
-  --bg-card: #0f172a;
-  --fg: #e5e7eb;
-  --accent: #fbbf24;
-  --muted: #9ca3af;
-  --border: #1f2937;
-  --radius: 0.75rem;
-  --font-size: 16px;
+  --bg: #0d0d0d;
+  --bg-card: #1a1a1a;
+  --bg-light: #141414;
+
+  --accent: #ff6a00;
+  --accent-light: #ff8c32;
+
+  --text: #ffffff;
+  --text-muted: #b3b3b3;
+
+  --border: #262626;
+  --danger: #ff3b30;
+  --success: #00c853;
 }
 
-[data-theme="light"] {
-  --bg: #f9fafb;
-  --bg-card: #ffffff;
-  --fg: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-}
-
-[data-font="large"] {
-  --font-size: 18px;
-}
-
-*,
-*::before,
-*::after {
+* {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
+  font-family: "Inter", "Roboto", sans-serif;
 }
 
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   background: var(--bg);
-  color: var(--fg);
-  font-size: var(--font-size);
+  color: var(--text);
+  padding-bottom: 80px;
 }
 
-/* LOGIN */
+/* --------------------------------------------------
+   LAYOUT
+-------------------------------------------------- */
 
-.login-screen {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
+.container {
+  width: 92%;
+  max-width: 600px;
+  margin: auto;
+  padding-top: 20px;
 }
 
-.login-card {
-  background: var(--bg-card);
-  padding: 2rem;
-  border-radius: var(--radius);
-  width: min(90%, 360px);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.login-card input {
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-  background: #020617;
-  color: var(--fg);
-}
-
-.login-card button {
-  padding: 0.7rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  background: var(--accent);
-  color: #111827;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.error {
-  color: #f97373;
-  font-size: 0.85rem;
-}
-
-/* APP LAYOUT */
-
-#app {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 4rem 1rem 2rem;
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding-bottom: 0.5rem;
-  background: linear-gradient(to bottom, rgba(2,6,23,0.95), transparent);
-}
-
-/* SIDEBAR */
-
-#sidebarOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  z-index: 90;
-}
-
-#sidebar {
-  position: fixed;
-  top: 0;
-  left: -260px;
-  width: 260px;
-  height: 100%;
-  background: #020617;
-  color: white;
-  padding: 1rem;
-  box-shadow: 3px 0 10px rgba(0,0,0,0.4);
-  z-index: 100;
-  transition: left 0.25s ease;
-}
-
-#sidebar.open {
-  left: 0;
-}
-
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.sidebar-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.4rem;
-  cursor: pointer;
-}
-
-.sidebar-menu {
-  list-style: none;
-  padding: 0;
-  margin-top: 1.5rem;
-}
-
-.sidebar-menu li {
-  padding: 0.8rem 0;
-  font-size: 1.05rem;
-  border-bottom: 1px solid #111827;
-  cursor: pointer;
-}
-
-.sidebar-menu li:hover {
-  color: var(--accent);
-}
-
-/* HAMBURGER */
-
-.hamburger {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 110;
-  background: #020617;
-  color: white;
-  border: 1px solid #111827;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.4rem;
-  font-size: 1.4rem;
-  cursor: pointer;
-}
-
-/* TABS */
-
-.tab {
-  display: none;
-}
-
-.tab.active {
-  display: block;
-}
-
-/* CARDS */
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
+.section {
+  margin: 28px 0;
 }
 
 .card {
   background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 0.9rem 1rem;
+  padding: 20px;
+  border-radius: 14px;
   border: 1px solid var(--border);
+  box-shadow: 0 0 20px rgba(255, 106, 0, 0.08);
+  margin-bottom: 20px;
 }
 
-.card-label {
-  font-size: 0.8rem;
-  color: var(--muted);
+/* --------------------------------------------------
+   HEADERS
+-------------------------------------------------- */
+
+h1, h2, h3 {
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
-.card-value {
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin-top: 0.25rem;
+h1 {
+  font-size: 1.9rem;
+  margin-bottom: 10px;
 }
 
-.card-sub {
-  font-size: 0.8rem;
-  color: var(--muted);
+h2 {
+  font-size: 1.4rem;
+  margin-bottom: 12px;
 }
 
-/* FORMS */
+/* --------------------------------------------------
+   INPUTS
+-------------------------------------------------- */
 
-.form {
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0 16px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--bg-light);
+  color: var(--text);
+  transition: 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(255, 106, 0, 0.3);
+  outline: none;
+}
+
+/* --------------------------------------------------
+   BUTTONS
+-------------------------------------------------- */
+
+button {
+  cursor: pointer;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 14px 20px;
+  transition: 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: var(--accent-light);
+  box-shadow: 0 0 15px var(--accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn-ghost:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+/* --------------------------------------------------
+   NAVIGATION / TOP BAR
+-------------------------------------------------- */
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: var(--bg-card);
+  padding: 14px 20px;
+  border-bottom: 2px solid var(--accent);
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
 }
 
-.form label {
+.topbar-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------
+   LOGIN SCREEN
+-------------------------------------------------- */
+
+.login-screen {
+  height: 100vh;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  background: var(--bg-card);
+  padding: 30px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 0 25px rgba(255, 106, 0, 0.15);
+}
+
+.login-card h1 {
+  margin-bottom: 20px;
+}
+
+.error {
+  color: var(--danger);
+  margin-top: 10px;
   font-size: 0.9rem;
 }
 
-.form input,
-.form select,
-.form textarea {
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-  background: #020617;
-  color: var(--fg);
-  font-family: inherit;
-}
-
-.form textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.form button {
-  padding: 0.7rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  background: var(--accent);
-  color: #111827;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* GRID */
-
-.grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-/* LISTS */
+/* --------------------------------------------------
+   LISTS / ITEMS
+-------------------------------------------------- */
 
 .list {
   list-style: none;
-  padding: 0;
-  margin: 0;
+  margin-top: 10px;
+}
+
+.list-item {
+  background: var(--bg-light);
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.list li {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 0.7rem 0.9rem;
-  border: 1px solid var(--border);
-}
-
-.list-title {
-  font-weight: 600;
-}
-
-.list-meta {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-/* CHIPS */
-
-.chip {
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  border: none;
-  background: var(--accent);
-  color: #111827;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.chip-ghost {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--fg);
-}
-
-/* MISC */
-
-.muted {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-/* CALENDAR */
-
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.calendar-day {
-  background: var(--bg-card);
-  border-radius: 0.5rem;
-  padding: 0.4rem 0.3rem;
-  text-align: center;
-  font-size: 0.8rem;
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  justify-content: space-between;
   align-items: center;
 }
 
-.calendar-day.active {
+.list-item:hover {
   border-color: var(--accent);
 }
 
-/* SESSION */
+/* --------------------------------------------------
+   TABS
+-------------------------------------------------- */
 
-.session-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 1rem;
-  border: 1px solid var(--border);
-  margin-top: 0.75rem;
-}
-
-.session-controls {
+.tabs {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
 }
 
-.session-timers {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1rem;
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: 0.2s;
 }
 
-.timer-display {
-  font-size: 1.4rem;
-  font-weight: 600;
+.tab.active {
+  color: var(--accent);
+  border-bottom: 3px solid var(--accent);
 }
 
-/* CHECKLIST */
+/* --------------------------------------------------
+   BADGES / TAGS
+-------------------------------------------------- */
 
-.checklist label {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
+.badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
-/* RESPONSIVE */
+.badge-orange {
+  background: var(--accent);
+  color: #000;
+}
 
-@media (min-width: 900px) {
-  #app {
-    padding-top: 3rem;
-  }
+.badge-dark {
+  background: var(--bg-light);
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------
+   FOOTER / SPACING
+-------------------------------------------------- */
+
+.spacer {
+  height: 40px;
+}
+
+.hidden {
+  display: none;
 }
